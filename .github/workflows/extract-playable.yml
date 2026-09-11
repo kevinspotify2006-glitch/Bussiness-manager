@@ -13,18 +13,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract build
+      - name: Find and extract playable ZIP
         run: |
-          unzip -o business-manager-playable.zip -d extracted
-          cp extracted/bmdist/index.html ./index.html
-          cp extracted/bmdist/main.css ./main.css
-          cp extracted/bmdist/main.js ./main.js
-          rm -rf extracted business-manager-playable.zip
+          ZIP=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
+          test -n "$ZIP"
+          mkdir -p extracted
+          unzip -o "$ZIP" -d extracted
+          INDEX=$(find extracted -type f -name 'index.html' | head -n 1)
+          CSS=$(find extracted -type f -name 'main.css' | head -n 1)
+          JS=$(find extracted -type f -name 'main.js' | head -n 1)
+          test -n "$INDEX" && test -n "$CSS" && test -n "$JS"
+          cp "$INDEX" ./index.html
+          cp "$CSS" ./main.css
+          cp "$JS" ./main.js
+          rm -rf extracted "$ZIP"
       - name: Commit extracted build
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html main.css main.js
-          git rm -f --ignore-unmatch business-manager-playable.zip
+          git rm -f --ignore-unmatch -- '*.zip'
           git commit -m "Extract playable build"
           git push
