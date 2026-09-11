@@ -1,0 +1,30 @@
+name: Extract playable build
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    if: github.event.head_commit.message != 'Extract playable build'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract build
+        run: |
+          unzip -o business-manager-playable.zip -d extracted
+          cp extracted/bmdist/index.html ./index.html
+          cp extracted/bmdist/main.css ./main.css
+          cp extracted/bmdist/main.js ./main.js
+          rm -rf extracted business-manager-playable.zip
+      - name: Commit extracted build
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html main.css main.js
+          git rm -f --ignore-unmatch business-manager-playable.zip
+          git commit -m "Extract playable build"
+          git push
