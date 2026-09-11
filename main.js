@@ -4,6 +4,9 @@ var START_CASH = 6e4;
 var START_DAY = 1;
 var START_HOUR = 8;
 var LEDGER_LIMIT = 600;
+function emptyPeriod(fromDay) {
+  return { fromDay, categories: {}, revenueByBusiness: {}, costsByBusiness: {} };
+}
 var DAY_HISTORY_LIMIT = 365;
 var ALERT_LIMIT = 60;
 var SPEEDS = [0, 0.5, 1, 2, 4];
@@ -448,7 +451,7 @@ function district(id) {
   return found;
 }
 var CITY_NAME = "Northgate";
-var CITY_POPULATION = DISTRICTS.reduce((total, d) => total + d.population, 0);
+var CITY_POPULATION = DISTRICTS.reduce((total2, d) => total2 + d.population, 0);
 
 // src/data/businessTypes.ts
 var BUSINESS_TYPES = [
@@ -1003,7 +1006,7 @@ var byId4 = new Map(CITY_EVENTS.map((event) => [event.id, event]));
 function cityEvent(id) {
   return byId4.get(id);
 }
-var TOTAL_EVENT_WEIGHT = CITY_EVENTS.reduce((total, event) => total + event.weight, 0);
+var TOTAL_EVENT_WEIGHT = CITY_EVENTS.reduce((total2, event) => total2 + event.weight, 0);
 
 // src/sim/format.ts
 var int = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 });
@@ -1072,10 +1075,10 @@ function clockLabel(hour) {
   return `${String(h2).padStart(2, "0")}:00`;
 }
 function hoursLabel(hours) {
-  const total = Math.max(0, Math.round(hours));
-  if (total < 24) return `${total}h`;
-  const days = Math.floor(total / 24);
-  const rest = total % 24;
+  const total2 = Math.max(0, Math.round(hours));
+  if (total2 < 24) return `${total2}h`;
+  const days = Math.floor(total2 / 24);
+  const rest = total2 % 24;
   return rest ? `${days}d ${rest}h` : `${days}d`;
 }
 
@@ -1088,12 +1091,12 @@ function approach(current, target, rate) {
   return current + (target - current) * clamp(rate, 0, 1);
 }
 function sum(items, pick) {
-  let total = 0;
+  let total2 = 0;
   for (const item of items) {
     const value = pick(item);
-    if (Number.isFinite(value)) total += value;
+    if (Number.isFinite(value)) total2 += value;
   }
-  return total;
+  return total2;
 }
 var counter = 0;
 function makeId(prefix) {
@@ -1113,6 +1116,253 @@ function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+// src/sim/segments.ts
+var EVENING = [
+  0.2,
+  0.1,
+  0.05,
+  0.05,
+  0.05,
+  0.1,
+  0.3,
+  0.5,
+  0.7,
+  0.8,
+  0.9,
+  1,
+  1.1,
+  1,
+  1,
+  1.1,
+  1.3,
+  1.6,
+  1.9,
+  2,
+  1.8,
+  1.3,
+  0.8,
+  0.4
+];
+var DAYTIME = [
+  0.05,
+  0.02,
+  0.02,
+  0.02,
+  0.05,
+  0.2,
+  0.6,
+  1.1,
+  1.5,
+  1.7,
+  1.8,
+  1.7,
+  1.5,
+  1.5,
+  1.5,
+  1.4,
+  1.2,
+  0.9,
+  0.6,
+  0.35,
+  0.2,
+  0.1,
+  0.05,
+  0.05
+];
+var COMMUTER = [
+  0.05,
+  0.02,
+  0.02,
+  0.02,
+  0.1,
+  0.4,
+  1.1,
+  1.8,
+  1.9,
+  1.1,
+  0.8,
+  0.9,
+  1.4,
+  1.1,
+  0.8,
+  0.9,
+  1.4,
+  1.9,
+  1.8,
+  1.1,
+  0.6,
+  0.3,
+  0.1,
+  0.05
+];
+var WEEKEND_ISH = [
+  0.05,
+  0.02,
+  0.02,
+  0.02,
+  0.05,
+  0.15,
+  0.4,
+  0.8,
+  1.2,
+  1.5,
+  1.7,
+  1.7,
+  1.6,
+  1.6,
+  1.6,
+  1.5,
+  1.3,
+  1.1,
+  0.9,
+  0.6,
+  0.35,
+  0.2,
+  0.1,
+  0.05
+];
+var SEGMENTS = [
+  {
+    id: "students",
+    name: "Students",
+    priceSensitivity: 1.55,
+    basket: 0.62,
+    quality: 0.6,
+    service: 0.8,
+    hours: EVENING,
+    description: "Huge numbers, tiny budgets, out late. They will walk past a better shop to save twenty cents."
+  },
+  {
+    id: "families",
+    name: "Families",
+    priceSensitivity: 1.15,
+    basket: 1.45,
+    quality: 1,
+    service: 1.15,
+    hours: WEEKEND_ISH,
+    description: "The big baskets. They care about price, but they care more about not having to go somewhere else afterwards."
+  },
+  {
+    id: "professionals",
+    name: "Professionals",
+    priceSensitivity: 0.62,
+    basket: 1.25,
+    quality: 1.35,
+    service: 1.3,
+    hours: COMMUTER,
+    description: "Time-poor and price-blind. They buy on the way to work and on the way home, and they notice bad service."
+  },
+  {
+    id: "retirees",
+    name: "Retirees",
+    priceSensitivity: 1.05,
+    basket: 0.95,
+    quality: 1.2,
+    service: 1.45,
+    hours: DAYTIME,
+    description: "Daytime trade, loyal, and the first to stop coming when the service slips."
+  },
+  {
+    id: "visitors",
+    name: "Visitors",
+    priceSensitivity: 0.72,
+    basket: 1.3,
+    quality: 1.1,
+    service: 1.05,
+    hours: WEEKEND_ISH,
+    description: "Tourists and people passing through. They pay the asking price and never come back, so reputation matters less than being findable."
+  }
+];
+var NEUTRAL = (() => {
+  const categories = ["retail", "food", "services", "specialized"];
+  let population = 0;
+  const totals = { priceSensitivity: 0, quality: 0, service: 0, basket: 0 };
+  for (const def of DISTRICTS) {
+    for (const category of categories) {
+      const mix = rawMix(def, category);
+      for (const s of SEGMENTS) {
+        totals.priceSensitivity += mix[s.id] * s.priceSensitivity * def.population;
+        totals.quality += mix[s.id] * s.quality * def.population;
+        totals.service += mix[s.id] * s.service * def.population;
+        totals.basket += mix[s.id] * s.basket * def.population;
+      }
+      population += def.population;
+    }
+  }
+  return {
+    priceSensitivity: totals.priceSensitivity / population,
+    quality: totals.quality / population,
+    service: totals.service / population,
+    basket: totals.basket / population
+  };
+})();
+function weightsOf(seg) {
+  return {
+    priceSensitivity: seg.priceSensitivity / NEUTRAL.priceSensitivity,
+    quality: seg.quality / NEUTRAL.quality,
+    service: seg.service / NEUTRAL.service,
+    basket: seg.basket / NEUTRAL.basket
+  };
+}
+var SEGMENT_BY_ID = new Map(SEGMENTS.map((segment) => [segment.id, segment]));
+var mixCache = /* @__PURE__ */ new Map();
+function districtMix(def, category) {
+  const key = `${def.id}|${category}`;
+  const cached2 = mixCache.get(key);
+  if (cached2) return cached2;
+  const mix = rawMix(def, category);
+  mixCache.set(key, mix);
+  return mix;
+}
+function rawMix(def, category) {
+  const income = clamp(def.averageIncome / 55e3, 0.35, 2.4);
+  const students = def.ageMix.young * clamp(1.7 - income * 0.75, 0.15, 1.5);
+  const retirees = def.ageMix.senior * 1.15;
+  const adults = Math.max(0.05, def.ageMix.adult);
+  const professionals = adults * clamp(income * 0.85, 0.25, 1.6);
+  const families = adults * clamp(1.5 - income * 0.35, 0.4, 1.4) + def.ageMix.young * 0.35;
+  const visitorPull = category === "food" ? 1.5 : category === "retail" ? 1.1 : 0.5;
+  const visitors = def.tourism * 0.42 * visitorPull;
+  const raw = { students, families, professionals, retirees, visitors };
+  const total2 = SEGMENTS.reduce((acc, s) => acc + raw[s.id], 0) || 1;
+  const mix = {};
+  for (const s of SEGMENTS) mix[s.id] = raw[s.id] / total2;
+  return mix;
+}
+function mixAtHour(def, category, hour) {
+  const base2 = districtMix(def, category);
+  const out = {};
+  let total2 = 0;
+  for (const s of SEGMENTS) {
+    const weight = base2[s.id] * (s.hours[hour] ?? 1);
+    out[s.id] = weight;
+    total2 += weight;
+  }
+  if (total2 <= 0) return base2;
+  for (const s of SEGMENTS) out[s.id] /= total2;
+  return out;
+}
+function emptyMix() {
+  return { students: 0, families: 0, professionals: 0, retirees: 0, visitors: 0 };
+}
+function normaliseMix(mix) {
+  const total2 = SEGMENTS.reduce((acc, s) => acc + (mix[s.id] ?? 0), 0);
+  if (total2 <= 0) return emptyMix();
+  const out = emptyMix();
+  for (const s of SEGMENTS) out[s.id] = (mix[s.id] ?? 0) / total2;
+  return out;
+}
+function basketFactor(mix) {
+  const normalised = normaliseMix(mix);
+  const factor = SEGMENTS.reduce((acc, s) => acc + normalised[s.id] * weightsOf(s).basket, 0);
+  return factor > 0 ? factor : 1;
+}
+function leadingSegment(mix) {
+  let best = SEGMENTS[0];
+  for (const s of SEGMENTS) if ((mix[s.id] ?? 0) > (mix[best.id] ?? 0)) best = s;
+  return best;
+}
+
 // src/sim/demand.ts
 var CATEGORY_RATE = {
   retail: 0.085,
@@ -1129,12 +1379,12 @@ var OUTLETS_PER_10K = {
 var BACKGROUND_SCORE = 1;
 var typeShareCache = /* @__PURE__ */ new Map();
 function typeShare(typeId) {
-  const cached = typeShareCache.get(typeId);
-  if (cached !== void 0) return cached;
+  const cached2 = typeShareCache.get(typeId);
+  if (cached2 !== void 0) return cached2;
   const type = businessTypeOrThrow(typeId);
   const peers = BUSINESS_TYPES.filter((other) => other.category === type.category);
-  const total = peers.reduce((acc, other) => acc + other.baseCustomers, 0);
-  const share = total > 0 ? type.baseCustomers / total : 1;
+  const total2 = peers.reduce((acc, other) => acc + other.baseCustomers, 0);
+  const share = total2 > 0 ? type.baseCustomers / total2 : 1;
   typeShareCache.set(typeId, share);
   return share;
 }
@@ -1227,6 +1477,46 @@ function productQuality(business) {
   if (defs.length === 0) return 0.6;
   return sum(defs, (d) => d.quality) / defs.length;
 }
+function pullOf(state, business) {
+  const type = businessTypeOrThrow(business.typeId);
+  const building = buildingById(state, business.buildingId);
+  if (!building) return null;
+  const def = district(building.district);
+  const walkIn = type.category === "retail" || type.category === "food";
+  const location = walkIn ? clamp(building.footTraffic / 14e3, 0.22, 2.6) : clamp(0.45 + def.population / 9e4, 0.35, 2.1);
+  const scale = clamp(0.55 + building.customerCapacity / 42, 0.55, 2.2);
+  const reputation = clamp(0.5 + business.reputation / 100 * 0.9, 0.4, 1.45);
+  const awareness = clamp(0.42 + business.awareness / 100 * 0.95, 0.42, 1.4);
+  const incomeIndex = clamp(def.averageIncome / 55e3, 0.4, 2.4);
+  return {
+    base: location * scale * reputation * awareness,
+    index: priceIndex(business),
+    elasticity: clamp(type.priceSensitivity * (2.3 - incomeIndex * 0.55), 0.35, 2.6),
+    quality01: productQuality(business),
+    incomeIndex,
+    service01: business.serviceQuality / 100,
+    condition01: building.condition / 100
+  };
+}
+function scoreFor(pull, seg) {
+  const weights = seg ? weightsOf(seg) : null;
+  const priceWeight = weights ? weights.priceSensitivity : 1;
+  const qualityWeight = weights ? weights.quality : 1;
+  const serviceWeight = weights ? weights.service : 1;
+  const price = clamp(
+    Math.pow(1 / Math.max(0.15, pull.index), pull.elasticity * priceWeight),
+    0.1,
+    2.6
+  );
+  const quality = clamp(
+    0.6 + pull.quality01 * 0.7 * qualityWeight * clamp(pull.incomeIndex, 0.6, 1.6),
+    0.4,
+    1.95
+  );
+  const service = clamp(0.5 + pull.service01 * 0.85 * serviceWeight, 0.4, 1.5);
+  const condition = clamp(0.8 + pull.condition01 * 0.28 * serviceWeight, 0.75, 1.12);
+  return Math.max(1e-4, pull.base * price * quality * service * condition);
+}
 function attractiveness(state, business) {
   const type = businessTypeOrThrow(business.typeId);
   const building = buildingById(state, business.buildingId);
@@ -1290,18 +1580,36 @@ function allocateDemand(state) {
     const share = typeShare(typeId);
     const pool = districtPool(state, districtId, category) * share;
     if (pool <= 0) continue;
-    const scores = members.map((business) => attractiveness(state, business).score);
-    const simulatedTotal = scores.reduce((acc, score) => acc + score, 0);
+    const pulls = members.map((business) => pullOf(state, business));
     const background = backgroundOutlets(districtId, category, 0) * share * BACKGROUND_SCORE;
-    const total = simulatedTotal + background;
-    if (total <= 0) continue;
+    const mix = mixAtHour(district(districtId), category, state.hour);
+    const customers = new Array(members.length).fill(0);
+    const served = members.map(() => emptyMix());
+    for (const seg of SEGMENTS) {
+      const segmentShare = mix[seg.id];
+      if (segmentShare < 4e-3) continue;
+      const segmentPool = pool * segmentShare;
+      let total2 = background;
+      const scores = pulls.map((pull) => {
+        if (!pull) return 0;
+        const score = scoreFor(pull, seg);
+        total2 += score;
+        return score;
+      });
+      if (total2 <= 0) continue;
+      for (let i = 0; i < members.length; i += 1) {
+        const got = segmentPool * (scores[i] / total2);
+        customers[i] += got;
+        served[i][seg.id] += got;
+      }
+    }
     members.forEach((business, index) => {
-      const memberShare = scores[index] / total;
       result.set(business.id, {
         businessId: business.id,
-        customers: pool * memberShare,
-        share: memberShare,
-        poolSize: pool
+        customers: customers[index],
+        share: pool > 0 ? customers[index] / pool : 0,
+        poolSize: pool,
+        mix: normaliseMix(served[index])
       });
     });
   }
@@ -1323,8 +1631,8 @@ function estimateDailyCustomers(state, business, overridePrices) {
   const rivalTotal = sum(rivals, (rival) => attractiveness(state, rival).score);
   const share = typeShare(business.typeId);
   const background = backgroundOutlets(building.district, category, 0) * share * BACKGROUND_SCORE;
-  const total = own + rivalTotal + background;
-  if (total <= 0) return 0;
+  const total2 = own + rivalTotal + background;
+  if (total2 <= 0) return 0;
   let daily = 0;
   const saved = state.hour;
   for (let hour = 0; hour < 24; hour += 1) {
@@ -1333,7 +1641,7 @@ function estimateDailyCustomers(state, business, overridePrices) {
     daily += districtPool(state, building.district, category) * share;
   }
   state.hour = saved;
-  return daily * (own / total);
+  return daily * (own / total2);
 }
 var ALL_DISTRICT_IDS = DISTRICTS.map((d) => d.id);
 
@@ -1449,6 +1757,16 @@ function dayTotals(state, day) {
   }
   return { revenue, costs: Math.max(0, costs) };
 }
+function accrue(state, category, amount, businessId) {
+  const totals = state.period;
+  totals.categories[category] = (totals.categories[category] ?? 0) + Math.abs(amount);
+  if (!businessId) return;
+  if (isRevenue(category)) {
+    totals.revenueByBusiness[businessId] = (totals.revenueByBusiness[businessId] ?? 0) + amount;
+  } else if (isOperatingCost(category)) {
+    totals.costsByBusiness[businessId] = (totals.costsByBusiness[businessId] ?? 0) + Math.abs(amount);
+  }
+}
 function post(state, companyId, category, label, amount, businessId = null) {
   if (!Number.isFinite(amount) || amount === 0) return;
   const company = companyById(state, companyId);
@@ -1457,6 +1775,7 @@ function post(state, companyId, category, label, amount, businessId = null) {
   if (!company.isPlayer) return;
   if (amount > 0) state.stats.revenueTotal += amount;
   else state.stats.costsTotal += -amount;
+  accrue(state, category, amount, businessId);
   const last = state.ledger[state.ledger.length - 1];
   if (last && last.day === state.day && last.hour === state.hour && last.category === category && last.label === label && last.businessId === businessId) {
     last.amount += amount;
@@ -1478,6 +1797,7 @@ function postNonCash(state, companyId, category, label, amount, businessId = nul
   if (!Number.isFinite(amount) || amount === 0) return;
   const company = companyById(state, companyId);
   if (!company || !company.isPlayer) return;
+  accrue(state, category, amount, businessId);
   const last = state.ledger[state.ledger.length - 1];
   if (last && last.day === state.day && last.hour === state.hour && last.category === category && last.label === label && last.businessId === businessId) {
     last.amount += amount;
@@ -1489,14 +1809,14 @@ function postNonCash(state, companyId, category, label, amount, businessId = nul
   }
 }
 function inventoryValue(state) {
-  let total = 0;
+  let total2 = 0;
   for (const business of playerBusinesses(state)) {
     for (const [productId, units] of Object.entries(business.stock)) {
       const def = product(productId);
-      if (def) total += def.wholesalePrice * units;
+      if (def) total2 += def.wholesalePrice * units;
     }
   }
-  return total;
+  return total2;
 }
 function propertyValue(state) {
   const player = playerCompany(state);
@@ -1509,15 +1829,15 @@ function debtTotal(state) {
   return sum(state.loans, (loan) => loan.outstanding);
 }
 function goodwillValue(state) {
-  let total = 0;
+  let total2 = 0;
   for (const business of playerBusinesses(state)) {
     if (business.status !== "open") continue;
     const recent = business.profitHistory.slice(-30);
     if (recent.length === 0) continue;
     const average = sum(recent, (value) => value) / recent.length;
-    total += Math.max(0, average * 120);
+    total2 += Math.max(0, average * 120);
   }
-  return total;
+  return total2;
 }
 function netWorth(state) {
   return playerCompany(state).cash + inventoryValue(state) + propertyValue(state) + goodwillValue(state) - debtTotal(state);
@@ -2289,7 +2609,7 @@ function employeesDaily(state) {
   refreshTail(state, replace);
 }
 function payWages(state) {
-  let total = 0;
+  let total2 = 0;
   for (const business of state.businesses) {
     if (business.companyId !== state.playerCompanyId) continue;
     const staff = employeesOf(state, business.id);
@@ -2297,9 +2617,9 @@ function payWages(state) {
     if (amount <= 0) continue;
     business.today.wages += amount;
     post(state, business.companyId, "wages", `Wages \u2014 ${business.name}`, -amount, business.id);
-    total += amount;
+    total2 += amount;
   }
-  return total;
+  return total2;
 }
 function refreshTail(state, count2) {
   const needed = [];
@@ -2478,6 +2798,8 @@ function createBusinessRecord(state, company, type, building, name) {
     employeeIds: [],
     marketingBudget: 0,
     awareness: 6,
+    todayMix: emptyMix(),
+    yesterdayMix: emptyMix(),
     today: emptyDayStats(),
     yesterday: emptyDayStats(),
     totals: { revenue: 0, costs: 0, customers: 0, units: 0 },
@@ -2497,7 +2819,8 @@ function rentBuilding(state, buildingId) {
   }
   building.status = "rented";
   building.occupantCompanyId = company.id;
-  post(state, company.id, "rent", `Deposit & first month \u2014 ${building.address}`, -upfront);
+  post(state, company.id, "property", `Deposit \u2014 ${building.address}`, -building.rent * 2);
+  post(state, company.id, "rent", `First month \u2014 ${building.address}`, -building.rent);
   return { ok: true, message: `${building.address} leased.` };
 }
 function buyBuilding(state, buildingId) {
@@ -2535,7 +2858,7 @@ function endLease(state, buildingId) {
   const refund = Math.round(building.rent * 1.5);
   building.status = "available";
   building.occupantCompanyId = null;
-  post(state, company.id, "rent", `Deposit returned \u2014 ${building.address}`, refund);
+  post(state, company.id, "property", `Deposit returned \u2014 ${building.address}`, refund);
   return { ok: true, message: "Lease ended, part of the deposit returned." };
 }
 var RENOVATION_DAYS = 6;
@@ -2652,12 +2975,12 @@ function setReorderPoint(state, businessId, productId, value) {
   return true;
 }
 function storageUsed(business) {
-  let total = 0;
+  let total2 = 0;
   for (const [productId, units] of Object.entries(business.stock)) {
     const def = product(productId);
-    if (def) total += def.volume * units;
+    if (def) total2 += def.volume * units;
   }
-  return total;
+  return total2;
 }
 function storageFree(state, business) {
   const building = buildingById(state, business.buildingId);
@@ -2679,20 +3002,25 @@ function tradeHour(state, business, allocation) {
   const capacity = hourlyCapacity(state, business);
   const served = Math.min(arrivals, capacity);
   const turnedAway = Math.max(0, arrivals - capacity);
+  const crowd = allocation?.mix ?? emptyMix();
+  for (const seg of SEGMENTS) {
+    business.todayMix[seg.id] = (business.todayMix[seg.id] ?? 0) + served * (crowd[seg.id] ?? 0);
+  }
+  const basket = basketFactor(crowd);
   let revenue = 0;
   let cogs = 0;
   let units = 0;
   let unmet = 0;
   if (type.productIds.length === 0) {
     const fee = business.prices.service ?? type.serviceFee;
-    revenue = served * fee;
+    revenue = served * fee * clamp(basket, 0.75, 1.3);
   } else {
     const defs = type.productIds.map((id) => product(id)).filter((d) => Boolean(d));
     const appealTotal = sum(defs, (d) => d.appeal);
     if (appealTotal <= 0) return;
     for (const def of defs) {
       const share = def.appeal / appealTotal;
-      const wanted = served * share * def.unitsPerBasket;
+      const wanted = served * share * def.unitsPerBasket * basket;
       if (wanted <= 0) continue;
       const available = business.stock[def.id] ?? 0;
       const sold = Math.min(wanted, available);
@@ -2705,7 +3033,7 @@ function tradeHour(state, business, allocation) {
       }
       unmet += wanted - sold;
     }
-    if (type.serviceFee > 0) revenue += served * (business.prices.service ?? type.serviceFee);
+    if (type.serviceFee > 0) revenue += served * (business.prices.service ?? type.serviceFee) * clamp(basket, 0.75, 1.3);
   }
   if (revenue > 0) {
     post(state, business.companyId, type.productIds.length > 0 ? "sales" : "service", `Takings \u2014 ${business.name}`, revenue, business.id);
@@ -2769,9 +3097,9 @@ function businessDaily(state, business) {
       5
     );
     const newReviews = Math.max(1, Math.round(business.today.customers / 45));
-    const total = business.reviewScore * business.reviewCount + raw * newReviews;
+    const total2 = business.reviewScore * business.reviewCount + raw * newReviews;
     business.reviewCount += newReviews;
-    business.reviewScore = clamp(total / business.reviewCount, 1, 5);
+    business.reviewScore = clamp(total2 / business.reviewCount, 1, 5);
     writeReviews(state, business, raw, availability);
     business.reputation = approach(business.reputation, (business.reviewScore - 1) / 4 * 100, 0.16);
   } else if (business.status === "open") {
@@ -2809,6 +3137,8 @@ function businessDaily(state, business) {
   if (business.profitHistory.length > 30) business.profitHistory.shift();
   business.yesterday = business.today;
   business.today = emptyDayStats();
+  business.yesterdayMix = business.todayMix;
+  business.todayMix = emptyMix();
   if (business.status === "open") {
     const lowStock = type.productIds.filter(
       (id) => (business.stock[id] ?? 0) <= (business.reorderPoints[id] ?? 0) && (business.incoming[id] ?? 0) <= 0
@@ -2866,6 +3196,25 @@ function spoilStock(state, business) {
       business.id
     );
   }
+}
+function propertyDaily(state) {
+  let total2 = 0;
+  for (const building of state.buildings) {
+    if (building.occupantCompanyId !== state.playerCompanyId) continue;
+    if (building.businessId) continue;
+    const events = eventFactors(state, building.district);
+    const rent = building.status === "rented" ? building.rent * events.rent / 30 : 0;
+    const utilities = building.rent * UTILITY_RATE / 30 * 0.45;
+    if (rent > 0) {
+      post(state, state.playerCompanyId, "rent", `Rent \u2014 ${building.address} (empty)`, -rent, null);
+      total2 += rent;
+    }
+    if (utilities > 0) {
+      post(state, state.playerCompanyId, "utilities", `Standing charges \u2014 ${building.address}`, -utilities, null);
+      total2 += utilities;
+    }
+  }
+  return total2;
 }
 function grossMargin(business) {
   const type = businessTypeOrThrow(business.typeId);
@@ -2930,7 +3279,7 @@ function tradeHourAI(state, business, allocation) {
       costRatio = revenue2 > 0 ? cost / revenue2 : 0.34;
     }
   }
-  const revenue = customers * revenuePerCustomer2;
+  const revenue = customers * revenuePerCustomer2 * basketFactor(allocation?.mix ?? emptyMix());
   const company = companyById(state, business.companyId);
   if (company) company.cash += revenue - revenue * costRatio;
   business.today.revenue += revenue;
@@ -3202,6 +3551,384 @@ function supplier(id) {
   return byId6.get(id);
 }
 
+// src/sim/warehouse.ts
+var RACKING_FACTOR = 4;
+var TRIP_COST = 28;
+var TRIPS_PER_DRIVER = 4;
+var BASE_TRIPS = 2;
+function warehousesOf(state) {
+  return state.warehouses.filter((w) => w.companyId === state.playerCompanyId);
+}
+function warehouseById(state, id) {
+  return state.warehouses.find((w) => w.id === id);
+}
+function capacityOf(state, warehouse) {
+  const building = buildingById(state, warehouse.buildingId);
+  return building ? building.storageCapacity * RACKING_FACTOR : 0;
+}
+function usedSpace(warehouse) {
+  return sum(Object.entries(warehouse.stock), ([productId, units]) => {
+    const def = product(productId);
+    return def ? units * def.volume : 0;
+  });
+}
+function freeSpace(state, warehouse) {
+  return Math.max(0, capacityOf(state, warehouse) - usedSpace(warehouse));
+}
+function stockValue(warehouse) {
+  return sum(Object.entries(warehouse.stock), ([productId, units]) => {
+    const def = product(productId);
+    return units * (warehouse.costBasis[productId] ?? def?.wholesalePrice ?? 0);
+  });
+}
+function tripsPerDay(state, warehouse) {
+  const drivers = employeesOf(state, warehouse.id).filter((e) => e.role === "driver").length;
+  return BASE_TRIPS + drivers * TRIPS_PER_DRIVER;
+}
+function canConvert(state, buildingId) {
+  const building = buildingById(state, buildingId);
+  if (!building) return { ok: false, message: "Unknown building." };
+  if (building.occupantCompanyId !== state.playerCompanyId) {
+    return { ok: false, message: "You have to lease or buy the unit first." };
+  }
+  if (building.businessId) return { ok: false, message: "There is a business trading here." };
+  if (state.warehouses.some((w) => w.buildingId === buildingId)) {
+    return { ok: false, message: "This is already a distribution centre." };
+  }
+  if (building.storageCapacity < 400) {
+    return { ok: false, message: `Too small to be worth racking out \u2014 ${building.storageCapacity} units of storage.` };
+  }
+  return { ok: true, message: `Racking out ${building.address} gives you ${building.storageCapacity * RACKING_FACTOR} units of space.` };
+}
+var FIT_OUT_COST = 6500;
+function openWarehouse(state, buildingId, name) {
+  const check = canConvert(state, buildingId);
+  if (!check.ok) return check;
+  const company = playerCompany(state);
+  if (company.cash < FIT_OUT_COST) {
+    return { ok: false, message: `Racking, a loading bay and a forklift cost ${money(FIT_OUT_COST)}.` };
+  }
+  const building = buildingById(state, buildingId);
+  if (!building) return { ok: false, message: "Unknown building." };
+  post(state, company.id, "equipment", `Warehouse fit-out \u2014 ${building.address}`, -FIT_OUT_COST, null);
+  const warehouse = {
+    id: makeId("wh"),
+    companyId: company.id,
+    buildingId,
+    name: name.trim().slice(0, 40) || `${company.name} Distribution`,
+    stock: {},
+    costBasis: {},
+    employeeIds: [],
+    autoDispatch: true,
+    openedOnDay: state.day,
+    dispatchedToday: 0
+  };
+  state.warehouses.push(warehouse);
+  pushNews(state, "company", `${warehouse.name} is open`, `${building.address} is now racked out as a distribution centre. Order in bulk here and your shops can pull from it overnight.`, {
+    importance: "normal"
+  });
+  return { ok: true, message: `${warehouse.name} is open at ${building.address}.` };
+}
+function closeWarehouse(state, warehouseId) {
+  const warehouse = warehouseById(state, warehouseId);
+  if (!warehouse) return { ok: false, message: "Unknown warehouse." };
+  const value = stockValue(warehouse) * 0.5;
+  if (value > 0) {
+    post(state, warehouse.companyId, "stock", `Clearance \u2014 ${warehouse.name}`, value, null);
+  }
+  for (const employee of employeesOf(state, warehouse.id)) {
+    employee.businessId = null;
+    employee.companyId = null;
+    state.employees = state.employees.filter((e) => e.id !== employee.id);
+  }
+  state.warehouses = state.warehouses.filter((w) => w.id !== warehouseId);
+  return {
+    ok: true,
+    message: `${warehouse.name} is closed. Remaining stock raised ${money(value)}.`
+  };
+}
+function shortfall(business) {
+  const type = businessTypeOrThrow(business.typeId);
+  const out = {};
+  for (const productId of type.productIds) {
+    const have = business.stock[productId] ?? 0;
+    const incoming = business.incoming[productId] ?? 0;
+    const reorder = business.reorderPoints[productId] ?? 0;
+    const target = Math.max(reorder * 7, 60);
+    const need = target - have - incoming;
+    if (need > 1) out[productId] = need;
+  }
+  return out;
+}
+function planDispatch(state, warehouse) {
+  const lines = [];
+  const trips = tripsPerDay(state, warehouse);
+  const available = { ...warehouse.stock };
+  let used = 0;
+  const shops = playerBusinesses(state).filter((b) => b.status !== "closed" && b.autoRestock).map((business) => ({ business, need: shortfall(business) })).filter((entry) => Object.keys(entry.need).length > 0).sort((a, b) => sum(Object.values(b.need), (n) => n) - sum(Object.values(a.need), (n) => n));
+  for (const { business, need } of shops) {
+    if (used >= trips) break;
+    let room = storageFree(state, business);
+    let sentAnything = false;
+    for (const [productId, wanted] of Object.entries(need)) {
+      const def = product(productId);
+      if (!def) continue;
+      const onRack = available[productId] ?? 0;
+      if (onRack < 1) continue;
+      const fits = Math.floor(room / Math.max(0.01, def.volume));
+      const units = Math.floor(Math.min(wanted, onRack, fits));
+      if (units < 1) continue;
+      available[productId] = onRack - units;
+      room -= units * def.volume;
+      lines.push({ businessId: business.id, productId, units });
+      sentAnything = true;
+    }
+    if (sentAnything) used += 1;
+  }
+  return lines;
+}
+function dispatchDaily(state) {
+  for (const warehouse of warehousesOf(state)) {
+    warehouse.dispatchedToday = 0;
+    if (!warehouse.autoDispatch) continue;
+    const lines = planDispatch(state, warehouse);
+    if (lines.length === 0) continue;
+    const byBusiness = /* @__PURE__ */ new Map();
+    for (const line of lines) {
+      const list = byBusiness.get(line.businessId) ?? [];
+      list.push(line);
+      byBusiness.set(line.businessId, list);
+    }
+    for (const [businessId, group] of byBusiness) {
+      const business = businessById(state, businessId);
+      if (!business) continue;
+      for (const line of group) {
+        const def = product(line.productId);
+        if (!def) continue;
+        const cost = warehouse.costBasis[line.productId] ?? def.wholesalePrice;
+        warehouse.stock[line.productId] = Math.max(0, (warehouse.stock[line.productId] ?? 0) - line.units);
+        const have = business.stock[line.productId] ?? 0;
+        const currentCost = business.costBasis[line.productId] ?? cost;
+        const total2 = have + line.units;
+        business.costBasis[line.productId] = total2 > 0 ? (have * currentCost + line.units * cost) / total2 : cost;
+        business.stock[line.productId] = total2;
+      }
+      warehouse.dispatchedToday += 1;
+      post(state, warehouse.companyId, "logistics", `Delivery run \u2014 ${business.name}`, -TRIP_COST, businessId);
+      business.today.otherCosts += TRIP_COST;
+    }
+    if (warehouse.dispatchedToday > 0) {
+      const units = Math.round(sum(lines, (line) => line.units));
+      pushNews(state, "supplier", `${warehouse.name} restocked ${warehouse.dispatchedToday} shop${warehouse.dispatchedToday === 1 ? "" : "s"}`, `${units} units left the racks overnight. No supplier lead time, no minimum order.`, {
+        importance: "low"
+      });
+    }
+  }
+}
+function warehouseDaily(state) {
+  for (const warehouse of warehousesOf(state)) {
+    const staff = employeesOf(state, warehouse.id);
+    const wages = sum(staff, (e) => e.salary / 30);
+    if (wages > 0) {
+      post(state, warehouse.companyId, "wages", `Wages \u2014 ${warehouse.name}`, -wages, null);
+    }
+    let wasted = 0;
+    for (const [productId, units] of Object.entries(warehouse.stock)) {
+      if (units <= 0) continue;
+      const def = product(productId);
+      if (!def || def.shelfLife <= 0) continue;
+      const rate = clamp(1 / (def.shelfLife * 9), 4e-3, 0.09);
+      const lost = units * rate;
+      if (lost < 0.01) continue;
+      warehouse.stock[productId] = Math.max(0, units - lost);
+      wasted += lost * (warehouse.costBasis[productId] ?? def.wholesalePrice);
+    }
+    if (wasted > 0) {
+      postNonCash(state, warehouse.companyId, "cogs", `Waste \u2014 ${warehouse.name}`, -wasted, null);
+    }
+    if (wasted > 60) {
+      pushAlert(
+        state,
+        "warning",
+        `Stock is going off at ${warehouse.name}`,
+        `About ${money(wasted)} of perishable stock was written off. A warehouse is the wrong place for anything short-dated.`,
+        null
+      );
+    }
+  }
+}
+var BULK_DELIVERY_RATE = 0.11;
+var BULK_CALLOUT = 45;
+function stockableProducts(state) {
+  const ids = /* @__PURE__ */ new Set();
+  for (const business of playerBusinesses(state)) {
+    for (const productId of businessTypeOrThrow(business.typeId).productIds) ids.add(productId);
+  }
+  return [...ids];
+}
+function quoteBulk(state, supplierId, warehouseId, requested) {
+  const problems = [];
+  const def = supplier(supplierId);
+  const warehouse = warehouseById(state, warehouseId);
+  const lines = [];
+  let units = 0;
+  let volume = 0;
+  let weight = 0;
+  let goodsCost = 0;
+  if (!def) problems.push("Unknown supplier.");
+  if (!warehouse) problems.push("Unknown warehouse.");
+  if (def && warehouse) {
+    const stockable = new Set(stockableProducts(state));
+    for (const input of requested) {
+      const quantity = Math.floor(input.quantity);
+      if (!Number.isFinite(quantity) || quantity <= 0) continue;
+      const productDef = product(input.productId);
+      if (!productDef) continue;
+      if (!stockable.has(input.productId)) {
+        problems.push(`None of your shops sell ${productDef.name}.`);
+        continue;
+      }
+      if (!def.categories.includes(productDef.category)) {
+        problems.push(`${def.name} does not carry ${productDef.name}.`);
+        continue;
+      }
+      const price = unitPrice(state, supplierId, input.productId);
+      lines.push({ productId: input.productId, quantity, unitPrice: price });
+      units += quantity;
+      volume += quantity * productDef.volume;
+      weight += quantity * productDef.weight;
+      goodsCost += quantity * price;
+    }
+    if (units === 0) problems.push("Nothing selected to order.");
+    if (goodsCost > 0 && goodsCost < def.minimumOrderValue) {
+      problems.push(`${def.name} has a minimum order of \u20AC${def.minimumOrderValue.toLocaleString("en-GB")}.`);
+    }
+    const room = freeSpace(state, warehouse);
+    if (volume > room) {
+      problems.push(`That is ${Math.round(volume - room)} units more than the racks will hold.`);
+    }
+  }
+  const deliveryCost = units > 0 ? Math.round(BULK_CALLOUT + weight * BULK_DELIVERY_RATE) : 0;
+  const total2 = Math.round(goodsCost + deliveryCost);
+  if (total2 > playerCompany(state).cash) problems.push("Not enough cash for this order.");
+  return {
+    lines,
+    units,
+    volume,
+    goodsCost: Math.round(goodsCost),
+    deliveryCost,
+    total: total2,
+    leadTimeHours: def?.leadTimeHours ?? 0,
+    // Six separate van deliveries, which is what the shops would otherwise pay.
+    retailEquivalent: units > 0 ? Math.round(goodsCost + 15 * Math.max(1, lines.length) + weight * 0.18) : 0,
+    problems
+  };
+}
+function placeBulkOrder(state, supplierId, warehouseId, requested) {
+  const quote = quoteBulk(state, supplierId, warehouseId, requested);
+  if (quote.problems.length > 0) return { ok: false, message: quote.problems[0] };
+  const def = supplier(supplierId);
+  const warehouse = warehouseById(state, warehouseId);
+  if (!def || !warehouse) return { ok: false, message: "Order could not be placed." };
+  const now = absoluteHour(state);
+  state.orders.push({
+    id: makeId("po"),
+    supplierId,
+    businessId: warehouse.id,
+    warehouseId: warehouse.id,
+    lines: quote.lines,
+    goodsCost: quote.goodsCost,
+    deliveryCost: quote.deliveryCost,
+    total: quote.total,
+    placedOnTick: now,
+    arrivesOnTick: now + def.leadTimeHours,
+    status: "transit"
+  });
+  state.supplierSpend[supplierId] = (state.supplierSpend[supplierId] ?? 0) + quote.total;
+  post(state, warehouse.companyId, "stock", `Bulk purchase \u2014 ${def.name}`, -quote.goodsCost, null);
+  if (quote.deliveryCost > 0) {
+    post(state, warehouse.companyId, "logistics", `Bulk delivery \u2014 ${def.name}`, -quote.deliveryCost, null);
+  }
+  return {
+    ok: true,
+    message: `${quote.units} units ordered into ${warehouse.name}, arriving in about ${def.leadTimeHours} hours.`
+  };
+}
+function receiveBulk(state, order) {
+  const warehouse = order.warehouseId ? warehouseById(state, order.warehouseId) : void 0;
+  const def = supplier(order.supplierId);
+  order.status = "delivered";
+  if (!warehouse || !def) return;
+  let received = 0;
+  let rejected = 0;
+  let credit = 0;
+  for (const line of order.lines) {
+    const productDef = product(line.productId);
+    if (!productDef) continue;
+    const room = Math.floor(freeSpace(state, warehouse) / Math.max(0.01, productDef.volume));
+    const accepted = Math.max(0, Math.min(line.quantity, room));
+    if (accepted > 0) {
+      const have = warehouse.stock[line.productId] ?? 0;
+      const currentCost = warehouse.costBasis[line.productId] ?? line.unitPrice;
+      const total2 = have + accepted;
+      warehouse.costBasis[line.productId] = total2 > 0 ? (have * currentCost + accepted * line.unitPrice) / total2 : line.unitPrice;
+      warehouse.stock[line.productId] = total2;
+      received += accepted;
+    }
+    const short = line.quantity - accepted;
+    if (short > 0) {
+      rejected += short;
+      credit += short * line.unitPrice;
+    }
+  }
+  if (credit > 0) {
+    post(state, warehouse.companyId, "stock", `Credit \u2014 ${def.name}`, credit, null);
+    pushAlert(
+      state,
+      "warning",
+      `${warehouse.name} could not take the whole delivery`,
+      `${Math.round(rejected)} units went back on the lorry and were credited. The racks are full.`,
+      null
+    );
+  }
+  if (received > 0) {
+    pushNews(state, "supplier", `${Math.round(received)} units delivered to ${warehouse.name}`, `From ${def.name}. Your shops can draw on it from tonight.`, {
+      importance: "low"
+    });
+  }
+}
+function warehouseCanSupply(state, productId, units) {
+  for (const warehouse of warehousesOf(state)) {
+    if (!warehouse.autoDispatch) continue;
+    if ((warehouse.stock[productId] ?? 0) >= units) return true;
+  }
+  return false;
+}
+function hireToWarehouse(state, applicantId, warehouseId) {
+  const warehouse = warehouseById(state, warehouseId);
+  if (!warehouse) return { ok: false, message: "Unknown warehouse." };
+  const applicant = state.applicants.find((a) => a.id === applicantId);
+  if (!applicant) return { ok: false, message: "That applicant is no longer available." };
+  if (applicant.role !== "warehouse" && applicant.role !== "driver" && applicant.role !== "manager") {
+    return { ok: false, message: "A distribution centre needs warehouse staff, drivers or a manager." };
+  }
+  const company = playerCompany(state);
+  const upfront = RECRUITMENT_FEE + applicant.salary / 30 * 7;
+  if (company.cash < upfront) {
+    return { ok: false, message: `You need ${money(upfront)} in cash to take someone on.` };
+  }
+  applicant.businessId = warehouse.id;
+  applicant.companyId = company.id;
+  applicant.hiredOnDay = state.day;
+  applicant.lastRecognisedOnDay = state.day;
+  state.employees.push(applicant);
+  warehouse.employeeIds.push(applicant.id);
+  state.applicants = state.applicants.filter((a) => a.id !== applicantId);
+  state.applicants.push(generateApplicant(state));
+  post(state, company.id, "wages", `Recruitment \u2014 ${applicant.name}`, -RECRUITMENT_FEE, null);
+  return { ok: true, message: `${applicant.name} joins ${warehouse.name} as ${role(applicant.role).name}.` };
+}
+
 // src/sim/procurement.ts
 var DELIVERY_RATE = 0.18;
 var DELIVERY_CALLOUT = 15;
@@ -3266,15 +3993,15 @@ function quoteOrder(state, supplierId, businessId, requested) {
     }
   }
   const deliveryCost = units > 0 ? Number((DELIVERY_CALLOUT + weight * DELIVERY_RATE * (def ? 2 - def.reliability : 1)).toFixed(2)) : 0;
-  const total = Number((goodsCost + deliveryCost).toFixed(2));
-  if (total > playerCompany(state).cash) problems.push("Not enough cash for this order.");
+  const total2 = Number((goodsCost + deliveryCost).toFixed(2));
+  if (total2 > playerCompany(state).cash) problems.push("Not enough cash for this order.");
   return {
     lines,
     units,
     volume: Number(volume.toFixed(1)),
     goodsCost: Number(goodsCost.toFixed(2)),
     deliveryCost,
-    total,
+    total: total2,
     leadTimeHours: def?.leadTimeHours ?? 0,
     problems
   };
@@ -3318,6 +4045,10 @@ function processOrders(state) {
   for (const order of state.orders) {
     if (order.status === "delivered" || now < order.arrivesOnTick) continue;
     const def = supplier(order.supplierId);
+    if (order.warehouseId) {
+      receiveBulk(state, order);
+      continue;
+    }
     const business = businessById(state, order.businessId);
     if (!def || !business) {
       order.status = "delivered";
@@ -3353,9 +4084,9 @@ function processOrders(state) {
       if (accepted > 0) {
         const current = business.stock[line.productId] ?? 0;
         const currentCost = business.costBasis[line.productId] ?? line.unitPrice;
-        const total = current + accepted;
-        business.costBasis[line.productId] = total > 0 ? (current * currentCost + accepted * line.unitPrice) / total : line.unitPrice;
-        business.stock[line.productId] = total;
+        const total2 = current + accepted;
+        business.costBasis[line.productId] = total2 > 0 ? (current * currentCost + accepted * line.unitPrice) / total2 : line.unitPrice;
+        business.stock[line.productId] = total2;
         received += accepted;
       }
       const short = line.quantity - accepted;
@@ -3426,6 +4157,7 @@ function runAutoRestock(state) {
       const onHand = (business.stock[productId] ?? 0) + (business.incoming[productId] ?? 0);
       const reorder = business.reorderPoints[productId] ?? 0;
       if (onHand > reorder) continue;
+      if (warehouseCanSupply(state, productId, Math.max(reorder, 20))) continue;
       wishlist.push({ productId, quantity: Math.max(Math.ceil(reorder * 7), 60) });
     }
     if (wishlist.length === 0) continue;
@@ -3569,10 +4301,10 @@ function startCampaign(state, channelId, businessId, days) {
   if (!channel || !business) return { ok: false, message: "Unknown campaign." };
   if (business.companyId !== state.playerCompanyId) return { ok: false, message: "That is not your business." };
   const length = Math.max(channel.minimumDays, Math.round(days));
-  const total = channel.dailyCost * length;
+  const total2 = channel.dailyCost * length;
   const company = playerCompany(state);
-  if (company.cash < total) {
-    return { ok: false, message: `That campaign costs ${total.toLocaleString("en-GB")} euro in total.` };
+  if (company.cash < total2) {
+    return { ok: false, message: `That campaign costs ${total2.toLocaleString("en-GB")} euro in total.` };
   }
   if (state.campaigns.some((c) => c.businessId === businessId && c.channelId === channelId)) {
     return { ok: false, message: "That campaign is already running for this business." };
@@ -3873,7 +4605,7 @@ var BULK_STOCK = {
     if (room < 40) return null;
     const quantity = Math.min(room, Math.round(gameRng.range(80, 320)));
     const unit = Number((def.wholesalePrice * 0.65).toFixed(2));
-    const total = Math.round(unit * quantity);
+    const total2 = Math.round(unit * quantity);
     return base(
       "bulk-stock",
       `Clearance ${def.name.toLowerCase()} offered to ${business.name}`,
@@ -3882,11 +4614,11 @@ var BULK_STOCK = {
       )} units of your storage.`,
       state,
       [
-        { id: "buy", label: `Take all ${quantity} for ${money(total)}`, detail: "Cheap stock, but cash and shelf space are tied up." },
+        { id: "buy", label: `Take all ${quantity} for ${money(total2)}`, detail: "Cheap stock, but cash and shelf space are tied up." },
         { id: "decline", label: "Pass", detail: "Keep the space and the cash." }
       ],
       { businessId: business.id, productId },
-      { quantity, unit, total },
+      { quantity, unit, total: total2 },
       2
     );
   },
@@ -3897,9 +4629,9 @@ var BULK_STOCK = {
     if (optionId !== "buy") return "You passed on the clearance stock.";
     const quantity = decision.numbers.quantity ?? 0;
     const unit = decision.numbers.unit ?? def.wholesalePrice;
-    const total = decision.numbers.total ?? Math.round(unit * quantity);
+    const total2 = decision.numbers.total ?? Math.round(unit * quantity);
     const company = playerCompany(state);
-    if (company.cash < total) return "Not enough cash to take the pallet.";
+    if (company.cash < total2) return "Not enough cash to take the pallet.";
     const room = Math.floor(storageFree(state, business) / Math.max(0.01, def.volume));
     const accepted = Math.min(quantity, room);
     if (accepted <= 0) return "There is no longer room for it.";
@@ -4081,8 +4813,8 @@ function decisionsDaily(state) {
   if (!gameRng.chance(0.3)) return;
   const eligible = DEFS.filter((def) => state.day - (state.decisionHistory[def.id] ?? -999) >= def.cooldown);
   if (eligible.length === 0) return;
-  const total = eligible.reduce((acc, def) => acc + def.weight, 0);
-  let roll = gameRng.next() * total;
+  const total2 = eligible.reduce((acc, def) => acc + def.weight, 0);
+  let roll = gameRng.next() * total2;
   let chosen = eligible[0];
   for (const def of eligible) {
     roll -= def.weight;
@@ -4159,8 +4891,8 @@ function shareOf(state, business) {
     if (other.status !== "open" || other.typeId !== business.typeId) return false;
     return buildingById(state, other.buildingId)?.district === building.district;
   });
-  const total = sum(peers, (peer) => attractiveness(state, peer).score) + backgroundOutlets(building.district, type.category, 0) * share;
-  return total > 0 ? attractiveness(state, business).score / total : 0;
+  const total2 = sum(peers, (peer) => attractiveness(state, peer).score) + backgroundOutlets(building.district, type.category, 0) * share;
+  return total2 > 0 ? attractiveness(state, business).score / total2 : 0;
 }
 function goalProgress(state, goal2) {
   const now = readMetric(state, goal2.metric, goal2.businessId);
@@ -4371,6 +5103,104 @@ function goalsDaily(state) {
   pushNews(state, "company", `New goal: ${created.title}`, created.detail, {
     businessId: created.businessId
   });
+}
+
+// src/sim/accounts.ts
+var ACCOUNT_LIMIT = 24;
+var REVENUE = ["sales", "service"];
+var DIRECT = ["cogs"];
+var OVERHEAD = [
+  "wages",
+  "rent",
+  "utilities",
+  "marketing",
+  "logistics",
+  "training",
+  "severance"
+];
+function total(state, categories) {
+  return sum(categories, (category) => state.period.categories[category] ?? 0);
+}
+function byCategory(state, category) {
+  return state.period.categories[category] ?? 0;
+}
+function closeMonth(state, days = 30) {
+  const to = state.day;
+  const from = Math.max(1, state.period.fromDay);
+  const trading = state.dayHistory.filter((record) => record.day >= from && record.day <= to);
+  if (trading.length < 5) return null;
+  const revenue = total(state, REVENUE);
+  const costOfSales = total(state, DIRECT);
+  const overheads = total(state, OVERHEAD);
+  const interest = byCategory(state, "interest");
+  const tax = byCategory(state, "tax");
+  const company = playerCompany(state);
+  const businesses = playerBusinesses(state);
+  const account = {
+    id: `m${Math.ceil(to / days)}`,
+    fromDay: from,
+    toDay: to,
+    revenue,
+    costOfSales,
+    grossProfit: revenue - costOfSales,
+    wages: byCategory(state, "wages"),
+    rent: byCategory(state, "rent"),
+    utilities: byCategory(state, "utilities"),
+    marketing: byCategory(state, "marketing"),
+    logistics: byCategory(state, "logistics"),
+    training: byCategory(state, "training") + byCategory(state, "severance"),
+    overheads,
+    interest,
+    tax,
+    netProfit: revenue - costOfSales - overheads - interest - tax,
+    customers: sum(trading, (record) => record.customers),
+    cash: company.cash,
+    stock: inventoryValue(state),
+    property: propertyValue(state),
+    goodwill: goodwillValue(state),
+    debt: debtTotal(state),
+    netWorth: netWorth(state),
+    headcount: state.employees.length,
+    locations: businesses.filter((b) => b.status === "open").length,
+    byBusiness: businesses.map((business) => {
+      const took = state.period.revenueByBusiness[business.id] ?? 0;
+      const spent = state.period.costsByBusiness[business.id] ?? 0;
+      return { businessId: business.id, name: business.name, revenue: took, costs: spent, profit: took - spent };
+    })
+  };
+  state.accounts.push(account);
+  if (state.accounts.length > ACCOUNT_LIMIT) state.accounts.shift();
+  state.period = emptyPeriod(to + 1);
+  return account;
+}
+function movements(account, before) {
+  const rows = [
+    { label: "Turnover", now: account.revenue, before: before.revenue, change: 0, higherIsBetter: true },
+    { label: "Cost of sales", now: account.costOfSales, before: before.costOfSales, change: 0, higherIsBetter: false },
+    { label: "Wages", now: account.wages, before: before.wages, change: 0, higherIsBetter: false },
+    { label: "Rent", now: account.rent, before: before.rent, change: 0, higherIsBetter: false },
+    { label: "Utilities", now: account.utilities, before: before.utilities, change: 0, higherIsBetter: false },
+    { label: "Marketing", now: account.marketing, before: before.marketing, change: 0, higherIsBetter: false },
+    { label: "Logistics", now: account.logistics, before: before.logistics, change: 0, higherIsBetter: false },
+    { label: "Interest", now: account.interest, before: before.interest, change: 0, higherIsBetter: false }
+  ];
+  for (const row of rows) row.change = row.now - row.before;
+  return rows.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+}
+function grossMarginOf(account) {
+  return account.revenue > 0 ? account.grossProfit / account.revenue : 0;
+}
+function basketOf(account) {
+  return account.customers > 0 ? account.revenue / account.customers : 0;
+}
+function monthInALine(account, before) {
+  const result = account.netProfit >= 0 ? "profit" : "loss";
+  if (!before) {
+    return `Turnover ${Math.round(account.revenue).toLocaleString("en-GB")}, ${result} of ${Math.round(Math.abs(account.netProfit)).toLocaleString("en-GB")} at a gross margin of ${Math.round(grossMarginOf(account) * 100)}%.`;
+  }
+  const moved = movements(account, before)[0];
+  const direction = moved.change > 0 ? "up" : "down";
+  return `${result === "profit" ? "Profit" : "Loss"} of ${Math.round(Math.abs(account.netProfit)).toLocaleString("en-GB")} against ${Math.round(Math.abs(before.netProfit)).toLocaleString("en-GB")} last month. ${moved.label} ${direction} ${Math.round(Math.abs(moved.change)).toLocaleString("en-GB")}.`;
 }
 
 // src/sim/economy.ts
@@ -4694,6 +5524,9 @@ var Engine = class {
       customers += business.today.customers;
       businessDaily(state, business);
     }
+    propertyDaily(state);
+    warehouseDaily(state);
+    dispatchDaily(state);
     campaignsDaily(state);
     competitorDaily(state);
     decisionsDaily(state);
@@ -4762,15 +5595,14 @@ var Engine = class {
     if (tax > 0) {
       pushAlert(state, "info", "Corporation tax paid", `\u20AC${Math.round(tax).toLocaleString("en-GB")} on last month's profit.`, null);
     }
-    const month = state.dayHistory.slice(-30);
-    if (month.length >= 10) {
-      const revenue = month.reduce((acc, d) => acc + d.revenue, 0);
-      const profit = month.reduce((acc, d) => acc + d.profit, 0);
+    const account = closeMonth(state, DAYS_PER_MONTH);
+    if (account) {
+      const before = state.accounts[state.accounts.length - 2];
       pushNews(
         state,
         "company",
-        `Monthly accounts closed: \u20AC${Math.round(profit).toLocaleString("en-GB")} ${profit >= 0 ? "profit" : "loss"}`,
-        `Turnover \u20AC${Math.round(revenue).toLocaleString("en-GB")}. Rent, payroll, loan payments and tax have all been settled.`,
+        `Management accounts: \u20AC${Math.round(account.netProfit).toLocaleString("en-GB")} ${account.netProfit >= 0 ? "profit" : "loss"}`,
+        monthInALine(account, before),
         { importance: "high" }
       );
     }
@@ -4779,6 +5611,20 @@ var Engine = class {
   checkSolvency() {
     const state = this.state;
     const company = playerCompany(state);
+    if (state.stats.bankrupt && company.cash >= 0 && netWorth(state) > 0) {
+      state.stats.bankrupt = false;
+      pushAlert(
+        state,
+        "info",
+        "Back in the black",
+        "The account is positive again and the company is worth more than it owes. You traded out of it.",
+        null
+      );
+      pushNews(state, "company", "The company has traded out of insolvency", "Cash is positive and net worth is above zero again.", {
+        importance: "high"
+      });
+      return;
+    }
     if (company.cash >= 0) return;
     const debt = -company.cash;
     const assets = netWorth(state) + debt;
@@ -4806,6 +5652,915 @@ var Engine = class {
     }
   }
 };
+
+// src/sim/cityLayout.ts
+var STREET_NAMES = [
+  "Marlow",
+  "Kestrel",
+  "Ashford",
+  "Bellamy",
+  "Cormorant",
+  "Dunmore",
+  "Ellery",
+  "Fenwick",
+  "Garrick",
+  "Halstead",
+  "Ivory",
+  "Jasper",
+  "Kingsley",
+  "Langmere",
+  "Merrick",
+  "Northgate",
+  "Orwell",
+  "Pemberton",
+  "Quarry",
+  "Ravensworth",
+  "Sable",
+  "Thornbury",
+  "Underhill",
+  "Vandermeer",
+  "Whitlock",
+  "Yarrow"
+];
+var STREET_SUFFIX = ["Street", "Avenue", "Road", "Lane", "Way", "Square", "Terrace"];
+var STYLES = {
+  downtown: {
+    block: 0.028,
+    street: 52e-4,
+    mix: { commercial: 6, civic: 1.2, plaza: 0.8, residential: 1.6, parking: 0.5 },
+    housing: "tower",
+    trees: 0.3,
+    floors: [4, 14]
+  },
+  financial: {
+    block: 0.032,
+    street: 56e-4,
+    mix: { commercial: 5, civic: 1.4, plaza: 1, residential: 1, parking: 0.6 },
+    housing: "tower",
+    trees: 0.25,
+    floors: [6, 18]
+  },
+  shopping: {
+    block: 0.026,
+    street: 5e-3,
+    mix: { commercial: 7, plaza: 1.2, parking: 1.2, residential: 1.4 },
+    housing: "apartment",
+    trees: 0.45,
+    floors: [2, 5]
+  },
+  highend: {
+    block: 0.042,
+    street: 48e-4,
+    mix: { residential: 7, park: 1.6, commercial: 1.2, civic: 0.6 },
+    housing: "detached",
+    trees: 0.95,
+    floors: [1, 3]
+  },
+  midtown: {
+    block: 0.03,
+    street: 46e-4,
+    mix: { residential: 6, commercial: 2, park: 0.9, civic: 0.7, parking: 0.5 },
+    housing: "terrace",
+    trees: 0.7,
+    floors: [2, 5]
+  },
+  southside: {
+    block: 0.027,
+    street: 44e-4,
+    mix: { residential: 7, commercial: 2, parking: 1, civic: 0.6, park: 0.5 },
+    housing: "apartment",
+    trees: 0.35,
+    floors: [3, 8]
+  },
+  suburbs: {
+    block: 0.045,
+    street: 46e-4,
+    mix: { residential: 7, park: 1.4, commercial: 1.1, parking: 0.6 },
+    housing: "detached",
+    trees: 0.85,
+    floors: [1, 2]
+  },
+  industrial: {
+    block: 0.058,
+    street: 68e-4,
+    mix: { industrial: 7, parking: 1.6, commercial: 1, civic: 0.3 },
+    housing: "none",
+    trees: 0.1,
+    floors: [1, 2]
+  },
+  warehouse: {
+    block: 0.055,
+    street: 64e-4,
+    mix: { industrial: 6, parking: 2, commercial: 1.2 },
+    housing: "none",
+    trees: 0.12,
+    floors: [1, 2]
+  },
+  university: {
+    block: 0.036,
+    street: 48e-4,
+    mix: { civic: 4, residential: 3, park: 2.2, commercial: 1.6, plaza: 0.8 },
+    housing: "apartment",
+    trees: 0.9,
+    floors: [2, 6]
+  },
+  entertainment: {
+    block: 0.025,
+    street: 5e-3,
+    mix: { commercial: 6, plaza: 1.6, residential: 1.6, parking: 1.2, civic: 0.8 },
+    housing: "apartment",
+    trees: 0.4,
+    floors: [2, 6]
+  },
+  tourist: {
+    block: 0.019,
+    street: 38e-4,
+    mix: { commercial: 5, civic: 1.4, plaza: 1.6, residential: 2.4 },
+    housing: "terrace",
+    trees: 0.55,
+    floors: [2, 4]
+  },
+  waterfront: {
+    block: 0.034,
+    street: 5e-3,
+    mix: { commercial: 3.5, residential: 2.6, industrial: 1.6, plaza: 1, park: 0.8 },
+    housing: "apartment",
+    trees: 0.5,
+    floors: [2, 7]
+  },
+  airport: {
+    block: 0.06,
+    street: 62e-4,
+    mix: { industrial: 3, parking: 3, commercial: 1.4, civic: 1 },
+    housing: "none",
+    trees: 0.15,
+    floors: [1, 3]
+  },
+  transit: {
+    block: 0.03,
+    street: 52e-4,
+    mix: { commercial: 4, civic: 2, parking: 2, residential: 2, plaza: 1 },
+    housing: "apartment",
+    trees: 0.4,
+    floors: [2, 7]
+  }
+};
+function unique(values, tolerance = 4e-3) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const out = [];
+  for (const value of sorted) {
+    if (out.length === 0 || Math.abs(value - out[out.length - 1]) > tolerance) out.push(value);
+  }
+  return out;
+}
+function runs(rng, start, span, min, max) {
+  const out = [];
+  let cursor = start;
+  const end = start + span;
+  while (end - cursor > min * 0.8) {
+    const width = Math.min(end - cursor, rng.range(min, max));
+    out.push({ a: cursor, b: cursor + width });
+    cursor += width;
+  }
+  if (out.length > 0) out[out.length - 1].b = end;
+  return out;
+}
+function weightedUse(rng, mix) {
+  const entries = Object.entries(mix);
+  const total2 = entries.reduce((acc, [, weight]) => acc + weight, 0);
+  let roll = rng.next() * total2;
+  for (const [use, weight] of entries) {
+    roll -= weight;
+    if (roll <= 0) return use;
+  }
+  return entries[0][0];
+}
+function plotCount(def) {
+  const area = def.w * def.h;
+  return Math.round(clamp(area * 900 * (0.6 + def.commercialActivity * 0.7), 8, 26));
+}
+var cached = null;
+function cityLayout() {
+  if (!cached) cached = build();
+  return cached;
+}
+function build() {
+  const rng = new Rng(CITY_SEED);
+  const roads = [];
+  const fillers = [];
+  const amenities = [];
+  const water = [];
+  const plots = [];
+  const parks = [];
+  const left = Math.min(...DISTRICTS.map((d) => d.x));
+  const right = Math.max(...DISTRICTS.map((d) => d.x + d.w));
+  const top = Math.min(...DISTRICTS.map((d) => d.y));
+  const bottom = Math.max(...DISTRICTS.map((d) => d.y + d.h));
+  const riverX = left - 0.028;
+  water.push({ x: riverX - 0.03, y: top - 0.05, w: 0.05, h: bottom - top + 0.14 });
+  const waterfront = DISTRICTS.find((d) => d.id === "waterfront");
+  if (waterfront) {
+    water.push({ x: riverX - 0.01, y: waterfront.y + 0.02, w: 0.062, h: waterfront.h - 0.05 });
+  }
+  const verticals = unique([left, ...DISTRICTS.map((d) => d.x + d.w), right]);
+  const horizontals = unique([top, ...DISTRICTS.map((d) => d.y + d.h), bottom]);
+  const ARTERIAL_W = 92e-4;
+  const usedNames = /* @__PURE__ */ new Set();
+  const roadName = () => {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const name = `${rng.pick(STREET_NAMES)} ${rng.pick(STREET_SUFFIX)}`;
+      if (!usedNames.has(name)) {
+        usedNames.add(name);
+        return name;
+      }
+    }
+    return `${rng.pick(STREET_NAMES)} Street`;
+  };
+  for (const x of verticals) {
+    const centre = x + (x === left ? -6e-3 : x === right ? 6e-3 : 6e-3);
+    roads.push({
+      cls: "arterial",
+      pts: [
+        { x: centre, y: top - 0.045 },
+        { x: centre, y: bottom + 0.045 }
+      ],
+      width: ARTERIAL_W,
+      name: roadName(),
+      major: true
+    });
+  }
+  for (const y of horizontals) {
+    const centre = y + (y === top ? -6e-3 : y === bottom ? 6e-3 : 0.012);
+    roads.push({
+      cls: "arterial",
+      pts: [
+        { x: left - 0.05, y: centre },
+        { x: right + 0.05, y: centre }
+      ],
+      width: ARTERIAL_W,
+      name: roadName(),
+      major: true
+    });
+  }
+  const diagonals = [
+    {
+      cls: "arterial",
+      pts: [
+        { x: left - 0.04, y: top + 0.02 },
+        { x: 0.44, y: 0.33 },
+        { x: 0.62, y: 0.48 },
+        { x: right + 0.04, y: 0.66 }
+      ],
+      width: 78e-4,
+      name: roadName(),
+      major: true
+    },
+    {
+      cls: "arterial",
+      pts: [
+        { x: 0.2, y: bottom + 0.04 },
+        { x: 0.36, y: 0.73 },
+        { x: 0.52, y: 0.6 },
+        { x: 0.66, y: 0.3 },
+        { x: 0.74, y: top - 0.04 }
+      ],
+      width: 72e-4,
+      name: roadName(),
+      major: true
+    }
+  ];
+  roads.push(...diagonals);
+  amenities.push({ kind: "fountain", x: 0.44, y: 0.33, r: 75e-4 });
+  amenities.push({ kind: "fountain", x: 0.66, y: 0.3, r: 68e-4 });
+  amenities.push({ kind: "fountain", x: 0.36, y: 0.73, r: 62e-4 });
+  for (const x of verticals) {
+    for (const y of horizontals) {
+      amenities.push({ kind: "signal", x: x + 6e-3, y: y + 0.012, r: 16e-4 });
+    }
+  }
+  const railY = 0.2985;
+  roads.push({
+    cls: "rail",
+    pts: [
+      { x: left - 0.05, y: railY },
+      { x: right + 0.05, y: railY }
+    ],
+    width: 42e-4,
+    name: "Northgate Main Line",
+    major: true
+  });
+  roads.push({
+    cls: "rail",
+    pts: [
+      { x: 0.503, y: top - 0.05 },
+      { x: 0.503, y: railY }
+    ],
+    width: 42e-4,
+    name: null,
+    major: true
+  });
+  const transit = DISTRICTS.find((d) => d.id === "transit");
+  if (transit) {
+    for (let i = 0; i < 4; i += 1) {
+      fillers.push({
+        kind: "platform",
+        x: 0.4915 + i * 55e-4,
+        y: transit.y + 0.085,
+        w: 32e-4,
+        h: 0.115,
+        floors: 1,
+        tone: 0.5,
+        district: "transit"
+      });
+    }
+    fillers.push({
+      kind: "terminal",
+      x: transit.x + 0.02,
+      y: transit.y + 0.09,
+      w: 0.036,
+      h: 0.07,
+      floors: 3,
+      tone: 0.62,
+      district: "transit"
+    });
+    fillers.push({
+      kind: "plaza",
+      x: transit.x + 0.02,
+      y: transit.y + 0.165,
+      w: 0.05,
+      h: 0.03,
+      floors: 0,
+      tone: 0.5,
+      district: "transit"
+    });
+  }
+  const airport = DISTRICTS.find((d) => d.id === "airport");
+  if (airport) {
+    const runwayY = airport.y + airport.h * 0.34;
+    roads.push({
+      cls: "runway",
+      pts: [
+        { x: airport.x + 6e-3, y: runwayY },
+        { x: airport.x + airport.w - 6e-3, y: runwayY }
+      ],
+      width: 0.011,
+      name: "Runway 09/27",
+      major: false
+    });
+    roads.push({
+      cls: "taxiway",
+      pts: [
+        { x: airport.x + 0.012, y: runwayY + 0.036 },
+        { x: airport.x + airport.w - 0.012, y: runwayY + 0.036 }
+      ],
+      width: 5e-3,
+      name: null,
+      major: false
+    });
+    for (let i = 0; i < 3; i += 1) {
+      const x = airport.x + 0.03 + i * 0.05;
+      roads.push({
+        cls: "taxiway",
+        pts: [
+          { x, y: runwayY },
+          { x, y: runwayY + 0.036 }
+        ],
+        width: 4e-3,
+        name: null,
+        major: false
+      });
+    }
+    fillers.push({
+      kind: "terminal",
+      x: airport.x + 0.028,
+      y: runwayY + 0.045,
+      w: 0.11,
+      h: 0.035,
+      floors: 3,
+      tone: 0.66,
+      district: "airport"
+    });
+    for (let i = 0; i < 4; i += 1) {
+      fillers.push({
+        kind: "hangar",
+        x: airport.x + 0.014 + i * 0.038,
+        y: airport.y + 0.018,
+        w: 0.031,
+        h: 0.03,
+        floors: 1,
+        tone: 0.42 + i * 0.04,
+        district: "airport"
+      });
+    }
+    fillers.push({
+      kind: "parking",
+      x: airport.x + 0.028,
+      y: runwayY + 0.088,
+      w: 0.11,
+      h: 0.042,
+      floors: 0,
+      tone: 0.5,
+      district: "airport"
+    });
+    amenities.push({ kind: "mast", x: airport.x + airport.w - 0.02, y: runwayY + 0.05, r: 4e-3 });
+  }
+  for (const def of DISTRICTS) {
+    buildDistrict(def, rng, { roads, fillers, amenities, water, plots, parks }, roadName);
+  }
+  return { roads, fillers, amenities, water, plots, parks };
+}
+function buildDistrict(def, rng, sink, roadName) {
+  const style = STYLES[def.id];
+  const inset = 8e-3;
+  const area = {
+    x: def.x + inset,
+    y: def.y + inset,
+    w: def.w - inset * 2,
+    h: def.h - inset * 2
+  };
+  if (def.id === "waterfront") {
+    const quayW = 0.03;
+    sink.fillers.push({
+      kind: "quay",
+      x: area.x,
+      y: area.y,
+      w: quayW,
+      h: area.h,
+      floors: 0,
+      tone: 0.5,
+      district: def.id
+    });
+    for (let i = 0; i < 5; i += 1) {
+      sink.fillers.push({
+        kind: "shed",
+        x: area.x + 4e-3,
+        y: area.y + 0.012 + i * 0.042,
+        w: 0.021,
+        h: 0.03,
+        floors: 1,
+        tone: 0.4 + i * 0.05,
+        district: def.id
+      });
+    }
+    area.x += quayW + 4e-3;
+    area.w -= quayW + 4e-3;
+  }
+  if (def.id === "airport") {
+    area.x += area.w * 0.72;
+    area.w *= 0.28;
+  }
+  const columns = Math.max(1, Math.round(area.w / style.block));
+  const rows = Math.max(1, Math.round(area.h / style.block));
+  const cellW = area.w / columns;
+  const cellH = area.h / rows;
+  const sw = style.street;
+  const nameA = roadName();
+  const nameB = roadName();
+  for (let c = 1; c < columns; c += 1) {
+    const x = area.x + c * cellW;
+    sink.roads.push({
+      cls: c % 2 === 0 ? "street" : "lane",
+      pts: [
+        { x, y: area.y - 4e-3 },
+        { x, y: area.y + area.h + 4e-3 }
+      ],
+      width: c % 2 === 0 ? sw : sw * 0.78,
+      name: c === Math.floor(columns / 2) ? nameA : null,
+      major: false
+    });
+  }
+  for (let r = 1; r < rows; r += 1) {
+    const y = area.y + r * cellH;
+    sink.roads.push({
+      cls: r % 2 === 0 ? "street" : "lane",
+      pts: [
+        { x: area.x - 4e-3, y },
+        { x: area.x + area.w + 4e-3, y }
+      ],
+      width: r % 2 === 0 ? sw : sw * 0.78,
+      name: r === Math.floor(rows / 2) ? nameB : null,
+      major: false
+    });
+  }
+  const blocks = [];
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < columns; c += 1) {
+      const x = area.x + c * cellW + sw / 2;
+      const y = area.y + r * cellH + sw / 2;
+      const w = cellW - sw;
+      const h2 = cellH - sw;
+      if (w < 4e-3 || h2 < 4e-3) continue;
+      const edge = c === 0 || c === columns - 1 || r === 0 || r === rows - 1;
+      const corner = (c === 0 || c === columns - 1) && (r === 0 || r === rows - 1);
+      const mix = { ...style.mix };
+      if (edge && mix.commercial) mix.commercial *= 1.35;
+      if (!edge && mix.commercial) mix.commercial *= 0.85;
+      blocks.push({
+        x,
+        y,
+        w,
+        h: h2,
+        use: weightedUse(rng, mix),
+        edge,
+        corner,
+        topEdge: r === 0,
+        bottomEdge: r === rows - 1
+      });
+    }
+  }
+  const quota = plotCount(def);
+  const candidates = blocks.filter((b) => b.use === "commercial").sort((a, b) => Number(b.corner) - Number(a.corner) || Number(b.edge) - Number(a.edge));
+  if (candidates.length * 2.4 < quota) {
+    for (const block of blocks) {
+      if (candidates.length * 2.4 >= quota) break;
+      if (block.use === "commercial" || block.use === "park" || block.use === "civic") continue;
+      block.use = "commercial";
+      candidates.push(block);
+    }
+    candidates.sort((a, b) => Number(b.corner) - Number(a.corner) || Number(b.edge) - Number(a.edge));
+  }
+  const streetA = `${rng.pick(STREET_NAMES)} ${rng.pick(STREET_SUFFIX)}`;
+  const streetB = `${rng.pick(STREET_NAMES)} ${rng.pick(STREET_SUFFIX)}`;
+  let made = 0;
+  for (const block of candidates) {
+    if (made >= quota) {
+      fillCommercialBlock(block, def, style, rng, sink, null);
+      continue;
+    }
+    made = fillCommercialBlock(block, def, style, rng, sink, {
+      quota,
+      made,
+      streetA,
+      streetB
+    });
+  }
+  const rest = blocks.filter((b) => b.use !== "commercial");
+  for (const block of rest) {
+    if (made >= quota) break;
+    if (block.use === "park" || block.use === "plaza") continue;
+    block.use = "commercial";
+    made = fillCommercialBlock(block, def, style, rng, sink, { quota, made, streetA, streetB });
+  }
+  for (const block of blocks) {
+    if (block.use === "commercial") continue;
+    fillBlock(block, def, style, rng, sink);
+  }
+  const treeBudget = Math.round(style.trees * 120);
+  for (let i = 0; i < treeBudget; i += 1) {
+    const vertical = rng.chance(0.5);
+    const along = vertical ? area.y + rng.next() * area.h : area.x + rng.next() * area.w;
+    const line = vertical ? area.x + Math.max(1, Math.round(rng.next() * columns)) * cellW : area.y + Math.max(1, Math.round(rng.next() * rows)) * cellH;
+    const offset = (rng.chance(0.5) ? -1 : 1) * (sw * 0.62 + 12e-4);
+    const point = vertical ? { x: line + offset, y: along } : { x: along, y: line + offset };
+    if (point.x < def.x || point.x > def.x + def.w || point.y < def.y || point.y > def.y + def.h) continue;
+    sink.amenities.push({ kind: "tree", x: point.x, y: point.y, r: rng.range(14e-4, 26e-4) });
+  }
+  for (let i = 0; i < 3; i += 1) {
+    sink.amenities.push({
+      kind: "bus",
+      x: area.x + area.w * ((i + 0.5) / 3),
+      y: area.y + Math.floor(rows / 2) * cellH + 32e-4,
+      r: 22e-4
+    });
+  }
+}
+function fillCommercialBlock(block, def, style, rng, sink, quotaState) {
+  const depth = Math.min(block.h * 0.4, 0.011);
+  const minWidth = def.id === "tourist" ? 52e-4 : 75e-4;
+  const maxWidth = def.id === "industrial" || def.id === "warehouse" ? 0.03 : 0.016;
+  const rows = [
+    { y: block.y, h: depth, frontage: block.topEdge ? "arterial" : "street" }
+  ];
+  if (block.h > depth * 1.9) {
+    rows.push({
+      y: block.y + block.h - depth,
+      h: depth,
+      frontage: block.bottomEdge ? "arterial" : "back"
+    });
+  }
+  let made = quotaState?.made ?? 0;
+  for (const row of rows) {
+    for (const run of runs(rng, block.x, block.w, minWidth, maxWidth)) {
+      const w = run.b - run.a - 6e-4;
+      if (w < 3e-3) continue;
+      const isCorner = run.a <= block.x + 1e-4 || run.b >= block.x + block.w - 1e-4;
+      if (quotaState && made < quotaState.quota) {
+        made += 1;
+        const number = made * 2 + rng.int(0, 1);
+        sink.plots.push({
+          id: `${def.id}-${made}`,
+          district: def.id,
+          x: run.a,
+          y: row.y,
+          w,
+          h: row.h,
+          frontage: row.frontage,
+          corner: isCorner && row.frontage !== "back",
+          weight: clamp(w * row.h / (0.013 * 0.011), 0.25, 1),
+          street: made % 2 === 0 ? quotaState.streetA : quotaState.streetB,
+          number
+        });
+      } else {
+        sink.fillers.push({
+          kind: "retail",
+          x: run.a,
+          y: row.y,
+          w,
+          h: row.h,
+          floors: rng.int(style.floors[0], style.floors[1]),
+          tone: rng.next(),
+          district: def.id
+        });
+      }
+    }
+  }
+  const backY = block.y + depth + 12e-4;
+  const backH = block.h - depth * (rows.length === 2 ? 2 : 1) - 24e-4;
+  if (backH > 4e-3) {
+    sink.fillers.push({
+      kind: rng.chance(0.62) ? "parking" : "office",
+      x: block.x + 1e-3,
+      y: backY,
+      w: block.w - 2e-3,
+      h: backH,
+      floors: rng.int(1, 3),
+      tone: rng.next(),
+      district: def.id
+    });
+  }
+  return made;
+}
+function fillBlock(block, def, style, rng, sink) {
+  const { x, y, w, h: h2, use } = block;
+  if (use === "park") {
+    sink.fillers.push({ kind: "park", x, y, w, h: h2, floors: 0, tone: rng.next(), district: def.id });
+    if (w * h2 > 9e-4) {
+      sink.parks.push({ x, y, w, h: h2, name: `${rng.pick(STREET_NAMES)} ${rng.chance(0.5) ? "Park" : "Gardens"}` });
+    }
+    const trees = Math.round(clamp(w * h2 / 12e-6, 6, 90));
+    for (let i = 0; i < trees; i += 1) {
+      sink.amenities.push({
+        kind: "tree",
+        x: x + rng.range(15e-4, w - 15e-4),
+        y: y + rng.range(15e-4, h2 - 15e-4),
+        r: rng.range(16e-4, 32e-4)
+      });
+    }
+    if (w > 0.02 && h2 > 0.02 && rng.chance(0.4)) {
+      sink.fillers.push({
+        kind: "pitch",
+        x: x + w * 0.2,
+        y: y + h2 * 0.3,
+        w: w * 0.55,
+        h: h2 * 0.38,
+        floors: 0,
+        tone: 0.5,
+        district: def.id
+      });
+    }
+    return;
+  }
+  if (use === "plaza") {
+    sink.fillers.push({ kind: "plaza", x, y, w, h: h2, floors: 0, tone: rng.next(), district: def.id });
+    if (rng.chance(0.5)) sink.amenities.push({ kind: "fountain", x: x + w / 2, y: y + h2 / 2, r: Math.min(w, h2) * 0.16 });
+    for (let i = 0; i < 5; i += 1) {
+      sink.amenities.push({
+        kind: "tree",
+        x: x + rng.range(2e-3, w - 2e-3),
+        y: y + rng.range(2e-3, h2 - 2e-3),
+        r: rng.range(14e-4, 22e-4)
+      });
+    }
+    return;
+  }
+  if (use === "parking") {
+    sink.fillers.push({ kind: "parking", x, y, w, h: h2, floors: 0, tone: rng.next(), district: def.id });
+    return;
+  }
+  if (use === "industrial") {
+    const count2 = w > 0.04 ? 2 : 1;
+    for (let i = 0; i < count2; i += 1) {
+      sink.fillers.push({
+        kind: rng.chance(0.25) ? "hangar" : "shed",
+        x: x + 2e-3 + i * (w - 4e-3) / count2,
+        y: y + 2e-3,
+        w: (w - 4e-3) / count2 - 2e-3,
+        h: h2 * rng.range(0.5, 0.72),
+        floors: rng.int(1, 2),
+        tone: rng.next(),
+        district: def.id
+      });
+    }
+    sink.fillers.push({
+      kind: "parking",
+      x: x + 2e-3,
+      y: y + h2 * 0.78,
+      w: w - 4e-3,
+      h: h2 * 0.2,
+      floors: 0,
+      tone: rng.next(),
+      district: def.id
+    });
+    return;
+  }
+  if (use === "civic") {
+    const inset = Math.min(w, h2) * 0.16;
+    sink.fillers.push({
+      kind: rng.chance(0.3) ? "hotel" : "civic",
+      x: x + inset,
+      y: y + inset,
+      w: w - inset * 2,
+      h: h2 - inset * 2,
+      floors: rng.int(style.floors[0] + 1, style.floors[1]),
+      tone: rng.next(),
+      district: def.id
+    });
+    for (let i = 0; i < 6; i += 1) {
+      sink.amenities.push({
+        kind: "tree",
+        x: x + rng.range(1e-3, w - 1e-3),
+        y: y + rng.range(1e-3, h2 - 1e-3),
+        r: rng.range(14e-4, 24e-4)
+      });
+    }
+    return;
+  }
+  switch (style.housing) {
+    case "detached": {
+      const plot = 88e-4;
+      const cols = Math.max(1, Math.floor(w / plot));
+      const rws = Math.max(1, Math.floor(h2 / plot));
+      for (let c = 0; c < cols; c += 1) {
+        for (let r = 0; r < rws; r += 1) {
+          if (rng.chance(0.12)) continue;
+          const cw = w / cols;
+          const ch = h2 / rws;
+          const size = rng.range(0.45, 0.62);
+          sink.fillers.push({
+            kind: "house",
+            x: x + c * cw + cw * (1 - size) * 0.5,
+            y: y + r * ch + ch * (1 - size) * 0.5,
+            w: cw * size,
+            h: ch * size,
+            floors: rng.int(1, 2),
+            tone: rng.next(),
+            district: def.id
+          });
+          if (rng.chance(0.5)) {
+            sink.amenities.push({
+              kind: "tree",
+              x: x + c * cw + cw * rng.range(0.1, 0.9),
+              y: y + r * ch + ch * rng.range(0.1, 0.9),
+              r: rng.range(14e-4, 24e-4)
+            });
+          }
+        }
+      }
+      return;
+    }
+    case "terrace": {
+      const depth = Math.min(h2 * 0.34, 9e-3);
+      for (const row of [y, y + h2 - depth]) {
+        for (const run of runs(rng, x, w, 26e-4, 42e-4)) {
+          sink.fillers.push({
+            kind: "terrace",
+            x: run.a,
+            y: row,
+            w: run.b - run.a - 3e-4,
+            h: depth,
+            floors: rng.int(2, 3),
+            tone: rng.next(),
+            district: def.id
+          });
+        }
+      }
+      return;
+    }
+    case "apartment": {
+      const count2 = Math.max(1, Math.round(w / 0.016));
+      for (let i = 0; i < count2; i += 1) {
+        const bw = (w - 3e-3 * (count2 + 1)) / count2;
+        sink.fillers.push({
+          kind: "apartment",
+          x: x + 3e-3 + i * (bw + 3e-3),
+          y: y + 25e-4,
+          w: bw,
+          h: h2 - 5e-3,
+          floors: rng.int(style.floors[0], style.floors[1]),
+          tone: rng.next(),
+          district: def.id
+        });
+      }
+      return;
+    }
+    case "tower": {
+      const inset = Math.min(w, h2) * rng.range(0.1, 0.2);
+      sink.fillers.push({
+        kind: "tower",
+        x: x + inset,
+        y: y + inset,
+        w: w - inset * 2,
+        h: h2 - inset * 2,
+        floors: rng.int(style.floors[0], style.floors[1]),
+        tone: rng.next(),
+        district: def.id
+      });
+      return;
+    }
+    default: {
+      sink.fillers.push({
+        kind: "shed",
+        x: x + 2e-3,
+        y: y + 2e-3,
+        w: w - 4e-3,
+        h: h2 - 4e-3,
+        floors: 1,
+        tone: rng.next(),
+        district: def.id
+      });
+    }
+  }
+}
+
+// src/sim/city.ts
+function pickSuitable(rng, def, size) {
+  const categories = [];
+  const preference = def.preferences;
+  const order = ["retail", "food", "services", "specialized"];
+  for (const category of order) {
+    const weight = preference[category] ?? 1;
+    const sizeFit = category === "food" ? clamp(1.4 - size / 400, 0.2, 1.2) : category === "services" ? clamp(size / 160, 0.3, 1.3) : 1;
+    if (rng.chance(clamp(weight * 0.55 * sizeFit, 0.08, 0.95))) categories.push(category);
+  }
+  if (categories.length === 0) categories.push(order[rng.int(0, order.length - 1)]);
+  return categories;
+}
+function trafficFactor(frontage, corner) {
+  const base2 = frontage === "arterial" ? 1.32 : frontage === "street" ? 0.95 : 0.62;
+  return corner ? base2 * 1.18 : base2;
+}
+function generateCity() {
+  const rng = new Rng(CITY_SEED ^ 20958);
+  const layout = cityLayout();
+  const byDistrict = /* @__PURE__ */ new Map();
+  for (const plot of layout.plots) {
+    const list = byDistrict.get(plot.district) ?? [];
+    list.push(plot);
+    byDistrict.set(plot.district, list);
+  }
+  const buildings = [];
+  for (const def of DISTRICTS) {
+    const plots = (byDistrict.get(def.id) ?? []).slice(0, plotCount(def));
+    for (const plot of plots) {
+      const size = Math.round(
+        clamp(rng.around(70 + def.commercialActivity * 110, 80) * (0.6 + plot.weight * 0.7), 40, 620)
+      );
+      const floors = size > 280 ? rng.int(1, 2) : rng.int(1, 3);
+      const condition = Math.round(clamp(rng.around(72, 22), 25, 100));
+      const conditionFactor = 0.7 + condition / 100 * 0.45;
+      const position = trafficFactor(plot.frontage, plot.corner);
+      const rent = Math.round(size * def.rentPerSqm * conditionFactor * (0.86 + position * 0.22) / 5) * 5;
+      const price = Math.round(size * def.pricePerSqm * conditionFactor * (0.88 + position * 0.2) / 500) * 500;
+      const footTraffic = Math.round(def.footTraffic * position * rng.range(0.78, 1.22));
+      buildings.push({
+        id: plot.id,
+        address: `${plot.number} ${plot.street}`,
+        district: def.id,
+        x: plot.x,
+        y: plot.y,
+        w: plot.w,
+        h: plot.h,
+        size,
+        floors,
+        rent,
+        price,
+        value: price,
+        customerCapacity: Math.max(4, Math.round(size / 4.5)),
+        storageCapacity: Math.max(120, Math.round(size * 3.6)),
+        parking: def.id === "suburbs" || def.id === "warehouse" || def.id === "industrial" ? rng.int(4, 40) : rng.int(0, 8),
+        condition,
+        footTraffic,
+        suitableFor: pickSuitable(rng, def, size),
+        status: "available",
+        occupantCompanyId: null,
+        businessId: null,
+        renovationEndsOnDay: null
+      });
+    }
+  }
+  return buildings;
+}
+function reprojectBuildings(buildings) {
+  const current = new Map(cityLayout().plots.map((plot) => [plot.id, plot]));
+  for (const building of buildings) {
+    const plot = current.get(building.id);
+    if (!plot) continue;
+    building.x = plot.x;
+    building.y = plot.y;
+    building.w = plot.w;
+    building.h = plot.h;
+  }
+}
 
 // src/sim/save.ts
 var INDEX_KEY = "business-manager:saves";
@@ -4935,8 +6690,13 @@ function migrate(input) {
     speed: Math.min(4, Math.max(0, num(input.speed, 0))),
     playerCompanyId: input.playerCompanyId,
     companies: input.companies,
-    businesses: Array.isArray(input.businesses) ? input.businesses : [],
-    buildings: input.buildings,
+    businesses: Array.isArray(input.businesses) ? input.businesses.map((business) => ({
+      ...business,
+      // Older saves predate customer segments.
+      todayMix: isRecord(business.todayMix) ? business.todayMix : emptyMix(),
+      yesterdayMix: isRecord(business.yesterdayMix) ? business.yesterdayMix : emptyMix()
+    })) : [],
+    buildings: Array.isArray(input.buildings) ? input.buildings : [],
     employees: people(input.employees),
     applicants: people(input.applicants),
     orders: Array.isArray(input.orders) ? input.orders : [],
@@ -4950,6 +6710,9 @@ function migrate(input) {
     decisions: Array.isArray(input.decisions) ? input.decisions : [],
     decisionHistory: isRecord(input.decisionHistory) ? input.decisionHistory : {},
     reviews: Array.isArray(input.reviews) ? input.reviews : [],
+    warehouses: Array.isArray(input.warehouses) ? input.warehouses : [],
+    accounts: Array.isArray(input.accounts) ? input.accounts : [],
+    period: isRecord(input.period) ? input.period : emptyPeriod(num(input.day, 1)),
     approaches: isRecord(input.approaches) ? input.approaches : {},
     goals: Array.isArray(input.goals) ? input.goals : [],
     goalsCompleted: num(input.goalsCompleted, 0),
@@ -4981,6 +6744,7 @@ function migrate(input) {
     }
   };
   if (!state.companies.some((company) => company.id === state.playerCompanyId)) return null;
+  reprojectBuildings(state.buildings);
   return state;
 }
 
@@ -5664,116 +7428,6 @@ var App = class {
   }
 };
 
-// src/sim/city.ts
-var STREET_NAMES = [
-  "Marlow",
-  "Kestrel",
-  "Ashford",
-  "Bellamy",
-  "Cormorant",
-  "Dunmore",
-  "Ellery",
-  "Fenwick",
-  "Garrick",
-  "Halstead",
-  "Ivory",
-  "Jasper",
-  "Kingsley",
-  "Langmere",
-  "Merrick",
-  "Northgate",
-  "Orwell",
-  "Pemberton",
-  "Quarry",
-  "Ravensworth",
-  "Sable",
-  "Thornbury",
-  "Underhill",
-  "Vandermeer",
-  "Whitlock",
-  "Yarrow"
-];
-var STREET_SUFFIX = ["Street", "Avenue", "Road", "Lane", "Way", "Square", "Terrace"];
-function plotCount(def) {
-  const area = def.w * def.h;
-  return Math.round(clamp(area * 900 * (0.6 + def.commercialActivity * 0.7), 8, 26));
-}
-function pickSuitable(rng, def, size) {
-  const categories = [];
-  const preference = def.preferences;
-  const order = ["retail", "food", "services", "specialized"];
-  for (const category of order) {
-    const weight = preference[category] ?? 1;
-    const sizeFit = category === "food" ? clamp(1.4 - size / 400, 0.2, 1.2) : category === "services" ? clamp(size / 160, 0.3, 1.3) : 1;
-    if (rng.chance(clamp(weight * 0.55 * sizeFit, 0.08, 0.95))) categories.push(category);
-  }
-  if (categories.length === 0) categories.push(order[rng.int(0, order.length - 1)]);
-  return categories;
-}
-function generateCity() {
-  const rng = new Rng(CITY_SEED);
-  const buildings = [];
-  for (const def of DISTRICTS) {
-    const count2 = plotCount(def);
-    const columns = Math.max(2, Math.round(Math.sqrt(count2 * (def.w / def.h))));
-    const rows = Math.max(2, Math.ceil(count2 / columns));
-    const padding = 6e-3;
-    const cellW = (def.w - padding * 2) / columns;
-    const cellH = (def.h - padding * 2) / rows;
-    const streetName = `${rng.pick(STREET_NAMES)} ${rng.pick(STREET_SUFFIX)}`;
-    const altStreet = `${rng.pick(STREET_NAMES)} ${rng.pick(STREET_SUFFIX)}`;
-    for (let index = 0; index < count2; index += 1) {
-      const column = index % columns;
-      const row = Math.floor(index / columns);
-      if (row >= rows) break;
-      const gap = 16e-4;
-      const w = cellW - gap * 2;
-      const h2 = cellH - gap * 2;
-      const x = def.x + padding + column * cellW + gap;
-      const y = def.y + padding + row * cellH + gap;
-      const edge = column === 0 || column === columns - 1 || row === 0 || row === rows - 1;
-      const corner = (column === 0 || column === columns - 1) && (row === 0 || row === rows - 1);
-      const trafficFactor = corner ? 1.45 : edge ? 1.15 : 0.72;
-      const size = Math.round(
-        clamp(rng.around(70 + def.commercialActivity * 110, 90) * (edge ? 1.1 : 1), 40, 620)
-      );
-      const floors = size > 280 ? rng.int(1, 2) : rng.int(1, 3);
-      const condition = Math.round(clamp(rng.around(72, 22), 25, 100));
-      const conditionFactor = 0.7 + condition / 100 * 0.45;
-      const rent = Math.round(size * def.rentPerSqm * conditionFactor * (edge ? 1.12 : 0.94) / 5) * 5;
-      const price = Math.round(size * def.pricePerSqm * conditionFactor * (edge ? 1.1 : 0.95) / 500) * 500;
-      const footTraffic = Math.round(def.footTraffic * trafficFactor * rng.range(0.75, 1.25));
-      const number = 2 * (index + 1) + rng.int(0, 1);
-      const address = `${number} ${index % 2 === 0 ? streetName : altStreet}`;
-      buildings.push({
-        id: `${def.id}-${index + 1}`,
-        address,
-        district: def.id,
-        x,
-        y,
-        w,
-        h: h2,
-        size,
-        floors,
-        rent,
-        price,
-        value: price,
-        customerCapacity: Math.max(4, Math.round(size / 4.5)),
-        storageCapacity: Math.max(120, Math.round(size * 3.6)),
-        parking: def.id === "suburbs" || def.id === "warehouse" || def.id === "industrial" ? rng.int(4, 40) : rng.int(0, 8),
-        condition,
-        footTraffic,
-        suitableFor: pickSuitable(rng, def, size),
-        status: "available",
-        occupantCompanyId: null,
-        businessId: null,
-        renovationEndsOnDay: null
-      });
-    }
-  }
-  return buildings;
-}
-
 // src/sim/setup.ts
 var COMPETITOR_NAMES = [
   { name: "ValuMart", personality: "lowcost" },
@@ -5824,6 +7478,9 @@ function createNewGame(companyName, seed = Date.now() >>> 0) {
     decisions: [],
     decisionHistory: {},
     reviews: [],
+    warehouses: [],
+    accounts: [],
+    period: emptyPeriod(START_DAY),
     approaches: {},
     goals: [],
     goalsCompleted: 0,
@@ -5981,7 +7638,7 @@ var MAP_MODES = [
 var CITY_W = 1;
 var CITY_H = 0.92;
 var MIN_ZOOM = 0.85;
-var MAX_ZOOM = 14;
+var MAX_ZOOM = 9;
 function heat(value) {
   const t = clamp(value, 0, 1);
   if (t < 0.5) {
@@ -5990,6 +7647,77 @@ function heat(value) {
   }
   const k = (t - 0.5) / 0.5;
   return `rgb(${Math.round(150 + k * 90)}, ${Math.round(170 - k * 90)}, ${Math.round(140 - k * 90)})`;
+}
+var C = {
+  ground: "#0a1119",
+  land: "#141c26",
+  water: "#0e2536",
+  waterEdge: "rgba(120,170,200,0.22)",
+  road: "#333e4d",
+  roadMain: "#3d4a5b",
+  runway: "#39424e",
+  taxiway: "#333b46",
+  path: "#44505f",
+  pavement: "#4c5a6b",
+  kerb: "rgba(10,16,23,0.55)",
+  outskirts: "#101a17",
+  field: "#152219",
+  marking: "rgba(226,214,160,0.5)",
+  ballast: "#2b3037",
+  rail: "#6b7784",
+  park: "#1c3324",
+  pitch: "#22412c",
+  plaza: "#2a3340",
+  parking: "#262f3a",
+  quay: "#28323d",
+  shadow: "rgba(0,0,0,0.34)",
+  tree: "#2c4b34",
+  treeShadow: "rgba(0,0,0,0.3)",
+  busStop: "#8b97a5",
+  signal: "#d8b24a",
+  roadLabel: "rgba(190,205,222,0.55)"
+};
+var OUTSKIRT_FIELDS = [
+  { x: -0.145, y: 0.03, w: 0.1, h: 0.07 },
+  { x: -0.16, y: 0.14, w: 0.07, h: 0.09 },
+  { x: -0.13, y: 0.62, w: 0.08, h: 0.08 },
+  { x: -0.17, y: 0.75, w: 0.11, h: 0.06 },
+  { x: 0.99, y: 0.12, w: 0.12, h: 0.08 },
+  { x: 1.02, y: 0.26, w: 0.08, h: 0.1 },
+  { x: 0.985, y: 0.72, w: 0.1, h: 0.09 },
+  { x: 0.2, y: -0.13, w: 0.14, h: 0.07 },
+  { x: 0.56, y: -0.15, w: 0.1, h: 0.08 },
+  { x: 0.3, y: 0.89, w: 0.13, h: 0.08 },
+  { x: 0.66, y: 0.9, w: 0.11, h: 0.07 }
+];
+var GROUND_KINDS = /* @__PURE__ */ new Set(["park", "plaza", "parking", "pitch", "quay"]);
+var STRUCTURE_COLOURS = {
+  house: "#4a4248",
+  // render and pitched tile
+  terrace: "#553f42",
+  // brick
+  apartment: "#3c4557",
+  // post-war concrete
+  tower: "#2f3e55",
+  // glass
+  office: "#36445a",
+  retail: "#4e4a4a",
+  shed: "#3a4149",
+  // corrugated steel
+  hangar: "#414a55",
+  civic: "#514c58",
+  // stone
+  hotel: "#514557",
+  terminal: "#44506180".slice(0, 7),
+  platform: "#4d545f"
+};
+function shade(hex, amount) {
+  const value = parseInt(hex.slice(1), 16);
+  const r = value >> 16 & 255;
+  const g = value >> 8 & 255;
+  const b = value & 255;
+  const mix = (channel) => Math.max(0, Math.min(255, Math.round(amount >= 0 ? channel + (255 - channel) * amount : channel * (1 + amount))));
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 var CityMap = class {
   canvas;
@@ -6050,7 +7778,7 @@ var CityMap = class {
   resize() {
     const rect = this.canvas.getBoundingClientRect();
     const width = Math.max(240, rect.width);
-    const height = clamp(width * 0.62, 260, 720);
+    const height = clamp(width * 0.72, 280, 780);
     this.cssW = width;
     this.cssH = height;
     this.dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -6214,26 +7942,370 @@ var CityMap = class {
       this.paint();
     });
   }
+  /**
+   * One frame of Northgate.
+   *
+   * Drawn the way a city is built up: ground, water, parks, then the roads,
+   * then everything standing on the blocks, then the details you only notice
+   * when you are close — trees, crossings, street names. Each layer has a zoom
+   * at which it starts being worth drawing, which is what keeps the whole city
+   * on screen at once from costing anything.
+   */
   paint() {
     if (this.cssW === 0) this.resize();
     const ctx = this.ctx;
+    const layout = cityLayout();
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.clearRect(0, 0, this.cssW, this.cssH);
-    ctx.fillStyle = "#0c1723";
-    ctx.fillRect(0, 0, this.cssW, this.cssH);
     const s = this.scale();
-    const showDetail = s > 900;
-    const showLabels = s > 520;
-    for (const def of DISTRICTS) {
-      this.paintDistrict(def, showLabels);
+    const detail = {
+      s,
+      fabric: s > 560,
+      kerbs: s > 1500,
+      markings: s > 1900,
+      scenery: s > 2400,
+      fine: s > 4200,
+      labels: s > 520
+    };
+    ctx.fillStyle = C.ground;
+    ctx.fillRect(0, 0, this.cssW, this.cssH);
+    this.paintOutskirts();
+    for (const body of layout.water) this.paintWater(body);
+    for (const def of DISTRICTS) this.paintDistrictGround(def);
+    if (detail.fabric) {
+      for (const filler of layout.fillers) {
+        if (!GROUND_KINDS.has(filler.kind)) continue;
+        if (!this.visible(filler)) continue;
+        this.paintGroundFiller(filler, detail);
+      }
     }
+    this.paintRoads(layout.roads, detail);
+    if (detail.fabric) {
+      for (const filler of layout.fillers) {
+        if (GROUND_KINDS.has(filler.kind)) continue;
+        if (!this.visible(filler)) continue;
+        this.paintStructure(filler, detail);
+      }
+    }
+    if (this.mode !== "standard") {
+      for (const def of DISTRICTS) this.paintOverlay(def);
+    }
+    if (detail.scenery) this.paintAmenities(layout.amenities, detail);
     for (const building of this.state.buildings) {
-      this.paintBuilding(building, showDetail);
+      if (!this.visible(building)) continue;
+      this.paintBuilding(building, detail);
     }
-    if (showLabels) {
-      for (const def of DISTRICTS) this.paintDistrictLabel(def);
+    if (detail.scenery) this.paintRoadNames(layout.roads, detail);
+    if (detail.labels) {
+      for (const park of layout.parks) this.paintParkName(park, detail);
+      for (const def of DISTRICTS) this.paintDistrictLabel(def, detail);
+    } else {
+      for (const def of DISTRICTS) this.paintDistrictShort(def);
     }
   }
+  /**
+   * The country the city sits in. Northgate does not stop at a hard edge: the
+   * land runs on, and the main roads run out into it.
+   */
+  paintOutskirts() {
+    const ctx = this.ctx;
+    const s = this.scale();
+    const p2 = this.toScreen(-0.2, -0.2);
+    ctx.fillStyle = C.outskirts;
+    ctx.fillRect(p2.x, p2.y, 1.4 * s, 1.34 * s);
+    ctx.fillStyle = C.field;
+    for (const field of OUTSKIRT_FIELDS) {
+      const q = this.toScreen(field.x, field.y);
+      ctx.fillRect(q.x, q.y, field.w * s, field.h * s);
+    }
+  }
+  /** Is any part of this rectangle on screen? */
+  visible(rect) {
+    const p2 = this.toScreen(rect.x, rect.y);
+    const s = this.scale();
+    return !(p2.x + rect.w * s < -8 || p2.x > this.cssW + 8 || p2.y + rect.h * s < -8 || p2.y > this.cssH + 8);
+  }
+  paintWater(body) {
+    const ctx = this.ctx;
+    const p2 = this.toScreen(body.x, body.y);
+    const s = this.scale();
+    ctx.fillStyle = C.water;
+    ctx.fillRect(p2.x, p2.y, body.w * s, body.h * s);
+    ctx.strokeStyle = C.waterEdge;
+    ctx.lineWidth = Math.max(1, s * 16e-4);
+    ctx.strokeRect(p2.x, p2.y, body.w * s, body.h * s);
+  }
+  paintDistrictGround(def) {
+    const ctx = this.ctx;
+    const p2 = this.toScreen(def.x, def.y);
+    const s = this.scale();
+    const w = def.w * s;
+    const h2 = def.h * s;
+    if (p2.x + w < -40 || p2.x > this.cssW + 40 || p2.y + h2 < -40 || p2.y > this.cssH + 40) return;
+    ctx.fillStyle = C.land;
+    ctx.fillRect(p2.x, p2.y, w, h2);
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = def.colour;
+    ctx.fillRect(p2.x, p2.y, w, h2);
+    ctx.globalAlpha = 1;
+  }
+  paintOverlay(def) {
+    const ctx = this.ctx;
+    const value = this.districtValue(def);
+    if (value < 0) return;
+    const p2 = this.toScreen(def.x, def.y);
+    const s = this.scale();
+    ctx.globalAlpha = 0.42;
+    ctx.fillStyle = heat(value);
+    ctx.fillRect(p2.x, p2.y, def.w * s, def.h * s);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(p2.x + 0.5, p2.y + 0.5, def.w * s - 1, def.h * s - 1);
+  }
+  // ------------------------------------------------------------- roads
+  paintRoads(roads, detail) {
+    const ctx = this.ctx;
+    const s = detail.s;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "butt";
+    const trace = (road) => {
+      ctx.beginPath();
+      road.pts.forEach((pt, index) => {
+        const p2 = this.toScreen(pt.x, pt.y);
+        if (index === 0) ctx.moveTo(p2.x, p2.y);
+        else ctx.lineTo(p2.x, p2.y);
+      });
+    };
+    const carriageways = roads.filter((road) => road.cls !== "rail");
+    const minor = (road) => road.cls === "lane" || road.cls === "street";
+    if (detail.kerbs) {
+      ctx.strokeStyle = C.pavement;
+      for (const road of carriageways) {
+        if (road.cls === "runway" || road.cls === "taxiway") continue;
+        if (minor(road) && !detail.fabric) continue;
+        ctx.lineWidth = road.width * s + Math.min(Math.max(2, s * 22e-4), 9);
+        trace(road);
+        ctx.stroke();
+      }
+    }
+    for (const road of carriageways) {
+      if (minor(road) && !detail.fabric) continue;
+      ctx.strokeStyle = road.cls === "arterial" ? C.roadMain : road.cls === "runway" ? C.runway : road.cls === "taxiway" ? C.taxiway : road.cls === "pedestrian" || road.cls === "path" ? C.path : C.road;
+      ctx.lineWidth = Math.max(road.cls === "arterial" ? 1.6 : 0.8, road.width * s);
+      trace(road);
+      ctx.stroke();
+    }
+    if (detail.markings) {
+      ctx.strokeStyle = C.marking;
+      ctx.lineWidth = Math.max(1, s * 6e-4);
+      ctx.setLineDash([s * 6e-3, s * 5e-3]);
+      for (const road of carriageways) {
+        if (road.cls !== "arterial" && road.cls !== "runway") continue;
+        trace(road);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      if (detail.fine) {
+        ctx.strokeStyle = C.kerb;
+        ctx.lineWidth = 1;
+        for (const road of carriageways) {
+          if (road.cls === "runway" || road.cls === "taxiway") continue;
+          for (const side of [-0.5, 0.5]) {
+            const vertical = Math.abs(road.pts[road.pts.length - 1].x - road.pts[0].x) < 1e-4;
+            ctx.beginPath();
+            road.pts.forEach((pt, index) => {
+              const offset = road.width * side;
+              const q = this.toScreen(pt.x + (vertical ? offset : 0), pt.y + (vertical ? 0 : offset));
+              if (index === 0) ctx.moveTo(q.x, q.y);
+              else ctx.lineTo(q.x, q.y);
+            });
+            ctx.stroke();
+          }
+        }
+      }
+    }
+    for (const road of roads) {
+      if (road.cls !== "rail") continue;
+      ctx.strokeStyle = C.ballast;
+      ctx.lineWidth = Math.max(1.4, road.width * s);
+      trace(road);
+      ctx.stroke();
+      if (detail.markings) {
+        ctx.strokeStyle = C.rail;
+        ctx.lineWidth = Math.max(0.6, road.width * s * 0.16);
+        for (const offset of [-road.width * 0.3, road.width * 0.3]) {
+          ctx.beginPath();
+          road.pts.forEach((pt, index) => {
+            const vertical = road.pts.length > 1 && Math.abs(road.pts[1].x - road.pts[0].x) < 1e-4;
+            const p2 = this.toScreen(pt.x + (vertical ? offset : 0), pt.y + (vertical ? 0 : offset));
+            if (index === 0) ctx.moveTo(p2.x, p2.y);
+            else ctx.lineTo(p2.x, p2.y);
+          });
+          ctx.stroke();
+        }
+      }
+    }
+  }
+  paintRoadNames(roads, detail) {
+    const ctx = this.ctx;
+    ctx.font = "600 9px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = C.roadLabel;
+    for (const road of roads) {
+      if (!road.name || road.pts.length < 2) continue;
+      if (!road.major && !detail.fine) continue;
+      const a = road.pts[0];
+      const b = road.pts[road.pts.length - 1];
+      const vertical = Math.abs(b.x - a.x) < Math.abs(b.y - a.y);
+      const mid = vertical ? { x: a.x, y: clamp(this.camera.y, Math.min(a.y, b.y) + 0.02, Math.max(a.y, b.y) - 0.02) } : { x: clamp(this.camera.x, Math.min(a.x, b.x) + 0.02, Math.max(a.x, b.x) - 0.02), y: a.y };
+      const p2 = this.toScreen(mid.x, mid.y);
+      if (p2.x < -60 || p2.x > this.cssW + 60 || p2.y < -20 || p2.y > this.cssH + 20) continue;
+      ctx.save();
+      ctx.translate(p2.x, p2.y);
+      if (vertical) ctx.rotate(-Math.PI / 2);
+      ctx.fillText(road.name, 0, -Math.max(3, road.width * detail.s * 0.5 + 3));
+      ctx.restore();
+    }
+  }
+  // -------------------------------------------------------- the fabric
+  paintGroundFiller(filler, detail) {
+    const ctx = this.ctx;
+    const p2 = this.toScreen(filler.x, filler.y);
+    const s = detail.s;
+    const w = filler.w * s;
+    const h2 = filler.h * s;
+    switch (filler.kind) {
+      case "park":
+        ctx.fillStyle = C.park;
+        ctx.fillRect(p2.x, p2.y, w, h2);
+        break;
+      case "pitch":
+        ctx.fillStyle = C.pitch;
+        ctx.fillRect(p2.x, p2.y, w, h2);
+        if (detail.markings) {
+          ctx.strokeStyle = "rgba(255,255,255,0.22)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(p2.x + 1, p2.y + 1, w - 2, h2 - 2);
+          ctx.beginPath();
+          ctx.moveTo(p2.x + w / 2, p2.y + 1);
+          ctx.lineTo(p2.x + w / 2, p2.y + h2 - 1);
+          ctx.stroke();
+        }
+        break;
+      case "plaza":
+        ctx.fillStyle = C.plaza;
+        ctx.fillRect(p2.x, p2.y, w, h2);
+        break;
+      case "quay":
+        ctx.fillStyle = C.quay;
+        ctx.fillRect(p2.x, p2.y, w, h2);
+        break;
+      case "parking":
+      default:
+        ctx.fillStyle = C.parking;
+        ctx.fillRect(p2.x, p2.y, w, h2);
+        if (detail.markings && w > 14 && h2 > 10) {
+          ctx.strokeStyle = "rgba(255,255,255,0.14)";
+          ctx.lineWidth = 1;
+          const step = Math.max(5, s * 26e-4);
+          ctx.beginPath();
+          for (let x = p2.x + step; x < p2.x + w - 1; x += step) {
+            ctx.moveTo(x, p2.y + 1);
+            ctx.lineTo(x, p2.y + h2 - 1);
+          }
+          ctx.stroke();
+        }
+        break;
+    }
+  }
+  paintStructure(filler, detail) {
+    const ctx = this.ctx;
+    const p2 = this.toScreen(filler.x, filler.y);
+    const s = detail.s;
+    const w = Math.max(1, filler.w * s);
+    const h2 = Math.max(1, filler.h * s);
+    const base2 = STRUCTURE_COLOURS[filler.kind] ?? "#39424f";
+    if (detail.kerbs && filler.floors > 0) {
+      const drop = Math.min(10, filler.floors * (detail.fine ? 0.9 : 0.5));
+      ctx.fillStyle = C.shadow;
+      ctx.fillRect(p2.x + drop, p2.y + drop, w, h2);
+    }
+    ctx.fillStyle = shade(base2, (filler.tone - 0.5) * 0.16);
+    ctx.fillRect(p2.x, p2.y, w, h2);
+    if (detail.markings && w > 5 && h2 > 5) {
+      ctx.fillStyle = shade(base2, 0.1 + (filler.tone - 0.5) * 0.08);
+      ctx.fillRect(p2.x + 1, p2.y + 1, w - 2, Math.max(1, Math.min(h2 * 0.4, 9)));
+      ctx.strokeStyle = C.kerb;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(p2.x + 0.5, p2.y + 0.5, w - 1, h2 - 1);
+    }
+    if (detail.fine && w > 22 && h2 > 16) {
+      ctx.fillStyle = "rgba(0,0,0,0.24)";
+      const bw = Math.min(w * 0.26, 18);
+      const bh = Math.min(h2 * 0.26, 14);
+      ctx.fillRect(p2.x + w * 0.18, p2.y + h2 * 0.5, bw, bh);
+      if (filler.floors > 3) {
+        ctx.fillStyle = "rgba(255,255,255,0.05)";
+        ctx.fillRect(p2.x + w - bw * 1.5, p2.y + h2 * 0.62, bw * 0.7, bh * 0.7);
+      }
+    }
+  }
+  paintAmenities(amenities, detail) {
+    const ctx = this.ctx;
+    const s = detail.s;
+    for (const item of amenities) {
+      const p2 = this.toScreen(item.x, item.y);
+      if (p2.x < -20 || p2.x > this.cssW + 20 || p2.y < -20 || p2.y > this.cssH + 20) continue;
+      const r = clamp(item.r * s, 1.2, item.kind === "fountain" ? 26 : 7);
+      switch (item.kind) {
+        case "tree":
+          ctx.fillStyle = C.treeShadow;
+          ctx.beginPath();
+          ctx.arc(p2.x + r * 0.35, p2.y + r * 0.35, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = C.tree;
+          ctx.beginPath();
+          ctx.arc(p2.x, p2.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case "fountain":
+          ctx.fillStyle = C.plaza;
+          ctx.beginPath();
+          ctx.arc(p2.x, p2.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = C.water;
+          ctx.beginPath();
+          ctx.arc(p2.x, p2.y, r * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case "bus":
+          if (!detail.fine) break;
+          ctx.fillStyle = C.busStop;
+          ctx.fillRect(p2.x - r, p2.y - r * 0.6, r * 2, r * 1.2);
+          break;
+        case "signal":
+          if (!detail.fine) break;
+          ctx.fillStyle = C.signal;
+          ctx.beginPath();
+          ctx.arc(p2.x, p2.y, Math.max(1, r * 0.8), 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case "mast":
+          if (!detail.fine) break;
+          ctx.strokeStyle = C.busStop;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(p2.x, p2.y);
+          ctx.lineTo(p2.x, p2.y - r * 2.2);
+          ctx.stroke();
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  // ------------------------------------------------------------- labels
   districtValue(def) {
     const districtState = this.state.districts[def.id];
     switch (this.mode) {
@@ -6258,39 +8330,48 @@ var CityMap = class {
         return -1;
     }
   }
-  paintDistrict(def, showLabels) {
+  paintDistrictShort(def) {
     const ctx = this.ctx;
-    const topLeft = this.toScreen(def.x, def.y);
+    const p2 = this.toScreen(def.x, def.y);
     const s = this.scale();
     const w = def.w * s;
-    const h2 = def.h * s;
-    if (topLeft.x + w < -40 || topLeft.x > this.cssW + 40) return;
-    if (topLeft.y + h2 < -40 || topLeft.y > this.cssH + 40) return;
-    const value = this.districtValue(def);
-    ctx.fillStyle = value >= 0 ? heat(value) : "#16202d";
-    ctx.globalAlpha = value >= 0 ? 0.5 : 1;
-    ctx.fillRect(topLeft.x, topLeft.y, w, h2);
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = value >= 0 ? "rgba(255,255,255,0.18)" : "#243141";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(topLeft.x + 0.5, topLeft.y + 0.5, w - 1, h2 - 1);
-    if (!showLabels && w > 46) {
-      ctx.fillStyle = "rgba(230,237,245,0.55)";
-      ctx.font = "600 10px system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(def.short, topLeft.x + w / 2, topLeft.y + h2 / 2 + 3);
-    }
+    if (p2.x + w < 0 || p2.x > this.cssW || w < 46) return;
+    ctx.fillStyle = "rgba(230,237,245,0.62)";
+    ctx.font = "600 10px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(def.short, p2.x + w / 2, p2.y + def.h * s / 2 + 3);
   }
-  paintDistrictLabel(def) {
+  paintDistrictLabel(def, detail) {
     const ctx = this.ctx;
-    const topLeft = this.toScreen(def.x, def.y);
-    const s = this.scale();
+    const p2 = this.toScreen(def.x, def.y);
+    const s = detail.s;
     const w = def.w * s;
-    if (topLeft.x + w < 0 || topLeft.x > this.cssW) return;
-    ctx.fillStyle = "rgba(230,237,245,0.85)";
-    ctx.font = "600 11px system-ui, sans-serif";
+    if (p2.x + w < 0 || p2.x > this.cssW) return;
+    const label = def.name.toUpperCase();
+    let size = 10;
+    ctx.font = `700 ${size}px system-ui, sans-serif`;
+    while (ctx.measureText(label).width + 18 > w && size > 7) {
+      size -= 1;
+      ctx.font = `700 ${size}px system-ui, sans-serif`;
+    }
     ctx.textAlign = "left";
-    ctx.fillText(def.name, topLeft.x + 6, topLeft.y + 14);
+    const width = ctx.measureText(label).width;
+    if (width + 18 > w) return;
+    ctx.fillStyle = "rgba(11,16,23,0.72)";
+    ctx.fillRect(p2.x + 4, p2.y + 3, width + 10, 15);
+    ctx.fillStyle = "rgba(230,237,245,0.9)";
+    ctx.fillText(label, p2.x + 9, p2.y + 14);
+  }
+  paintParkName(park, detail) {
+    if (!detail.scenery) return;
+    const ctx = this.ctx;
+    const p2 = this.toScreen(park.x, park.y);
+    const s = detail.s;
+    if (park.w * s < 60) return;
+    ctx.fillStyle = "rgba(190,218,196,0.75)";
+    ctx.font = "italic 600 10px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(park.name, p2.x + park.w * s / 2, p2.y + park.h * s / 2 + 3);
   }
   buildingColour(building) {
     const player = this.state.playerCompanyId;
@@ -6302,47 +8383,56 @@ var CityMap = class {
       case "property":
         return heat(clamp(building.value / 9e5, 0, 1));
       case "commercial":
-        return building.status === "available" ? "#6f9bd0" : "#3b4a5d";
+        return building.status === "available" ? "#6f9bd0" : "#4a5567";
       default:
-        return building.status === "available" ? "#55677e" : "#3b4a5d";
+        return building.status === "available" ? "#5d708a" : "#4a5567";
     }
   }
-  paintBuilding(building, showDetail) {
+  paintBuilding(building, detail) {
     const ctx = this.ctx;
-    const topLeft = this.toScreen(building.x, building.y);
-    const s = this.scale();
+    const p2 = this.toScreen(building.x, building.y);
+    const s = detail.s;
     const w = Math.max(2, building.w * s);
     const h2 = Math.max(2, building.h * s);
-    if (topLeft.x + w < 0 || topLeft.x > this.cssW || topLeft.y + h2 < 0 || topLeft.y > this.cssH) return;
-    ctx.fillStyle = this.buildingColour(building);
-    ctx.fillRect(topLeft.x, topLeft.y, w, h2);
+    const colour = this.buildingColour(building);
+    if (detail.kerbs) {
+      const drop = Math.min(9, building.floors * (detail.fine ? 1.4 : 0.8));
+      ctx.fillStyle = C.shadow;
+      ctx.fillRect(p2.x + drop, p2.y + drop, w, h2);
+    }
+    ctx.fillStyle = colour;
+    ctx.fillRect(p2.x, p2.y, w, h2);
+    if (detail.markings && h2 > 6) {
+      ctx.fillStyle = "rgba(255,255,255,0.13)";
+      ctx.fillRect(p2.x, p2.y + h2 - Math.max(1.5, h2 * 0.2), w, Math.max(1.5, h2 * 0.2));
+    }
     const selected = building.id === this.selectedId;
     const hovered = building.id === this.hoverId;
     if (selected || hovered) {
-      ctx.strokeStyle = selected ? "#ffffff" : "rgba(255,255,255,0.6)";
+      ctx.strokeStyle = selected ? "#ffffff" : "rgba(255,255,255,0.65)";
       ctx.lineWidth = selected ? 2 : 1.5;
-      ctx.strokeRect(topLeft.x - 1, topLeft.y - 1, w + 2, h2 + 2);
+      ctx.strokeRect(p2.x - 1.5, p2.y - 1.5, w + 3, h2 + 3);
     }
-    if (!showDetail || w < 26 || h2 < 14) return;
+    if (!detail.markings || w < 22 || h2 < 9) return;
     const business = building.businessId ? businessById(this.state, building.businessId) : void 0;
     if (business) {
       const type = businessType(business.typeId);
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
-      ctx.fillRect(topLeft.x, topLeft.y, w, h2);
+      ctx.fillStyle = "rgba(0,0,0,0.32)";
+      ctx.fillRect(p2.x, p2.y, w, h2);
       ctx.fillStyle = "#e6edf5";
-      ctx.font = `${Math.min(13, h2 * 0.5)}px system-ui, sans-serif`;
+      ctx.font = `${Math.min(13, Math.max(7, h2 * 0.55))}px system-ui, sans-serif`;
       ctx.textAlign = "center";
-      ctx.fillText(type?.icon ?? "\u2022", topLeft.x + w / 2, topLeft.y + h2 / 2 + 4);
-      if (h2 > 30 && w > 60) {
-        ctx.fillStyle = "rgba(230,237,245,0.85)";
+      ctx.fillText(type?.icon ?? "\u2022", p2.x + w / 2, p2.y + h2 / 2 + 4);
+      if (detail.fine && h2 > 22 && w > 54) {
+        ctx.fillStyle = "rgba(230,237,245,0.9)";
         ctx.font = "600 9px system-ui, sans-serif";
-        ctx.fillText(this.truncate(business.name, w), topLeft.x + w / 2, topLeft.y + h2 - 5);
+        ctx.fillText(this.truncate(business.name, w), p2.x + w / 2, p2.y + h2 - 4);
       }
-    } else if (h2 > 24 && w > 54) {
-      ctx.fillStyle = "rgba(230,237,245,0.7)";
+    } else if (detail.fine && h2 > 14 && w > 46) {
+      ctx.fillStyle = "rgba(15,22,31,0.75)";
       ctx.font = "9px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(this.truncate(building.address, w), topLeft.x + w / 2, topLeft.y + h2 / 2 + 3);
+      ctx.fillText(this.truncate(building.address, w), p2.x + w / 2, p2.y + h2 / 2 + 3);
     }
   }
   truncate(text, width) {
@@ -6365,8 +8455,8 @@ function marketShare(state, businessId) {
   const own = attractiveness(state, business).score;
   const simulated = peers.reduce((acc, peer) => acc + attractiveness(state, peer).score, 0);
   const background = category ? backgroundOutlets(building.district, category, 0) * typeShare(business.typeId) : 0;
-  const total = own + simulated + background;
-  return total > 0 ? own / total : 0;
+  const total2 = own + simulated + background;
+  return total2 > 0 ? own / total2 : 0;
 }
 
 // src/sim/advice.ts
@@ -6422,6 +8512,21 @@ function adviceFor(state, business) {
         "Advertise hard to pull people in, or move to a busier unit",
         "property",
         72
+      )
+    );
+  }
+  const walkIn = type.category === "retail" || type.category === "food";
+  if (!walkIn && building && building.footTraffic > 18e3) {
+    out.push(
+      note(
+        business,
+        "wrong-pitch",
+        "warning",
+        "You are paying for passing trade you cannot use",
+        `${building.footTraffic.toLocaleString("en-GB")} people a day walk past ${building.address}, and ${money(building.rent)} a month of your rent is for that footfall. A ${type.name.toLowerCase()} draws on the people who live and work in ${district(building.district).name}, not the ones walking by.`,
+        "A quieter unit in the same district would trade the same and cost less",
+        "property",
+        70
       )
     );
   }
@@ -6666,6 +8771,64 @@ function topAdvice(state, limit = 5) {
         "Find premises on the map",
         "map",
         90
+      )
+    );
+  }
+  for (const warehouse of warehousesOf(state)) {
+    const drivers = employeesOf(state, warehouse.id).filter((e) => e.role === "driver").length;
+    if (drivers === 0) {
+      out.push(
+        note(
+          null,
+          `wh-driver-${warehouse.id}`,
+          "warning",
+          `${warehouse.name} has no driver`,
+          `It can manage ${BASE_TRIPS} runs a night instead of ${BASE_TRIPS + TRIPS_PER_DRIVER}, so shops go short while stock sits on the racks.`,
+          "Hire a driver",
+          "logistics",
+          72
+        )
+      );
+    }
+    if (stockValue(warehouse) < 200 && businesses.some((b) => b.status === "open")) {
+      out.push(
+        note(
+          null,
+          `wh-empty-${warehouse.id}`,
+          "warning",
+          `${warehouse.name} is empty`,
+          "You are paying rent, wages and standing charges on a building holding nothing, and your shops are buying from suppliers at shop prices.",
+          "Order stock in bulk, or close the centre",
+          "logistics",
+          75
+        )
+      );
+    }
+  }
+  if (warehousesOf(state).length > 0 && businesses.filter((b) => b.status === "open").length < 2) {
+    out.push(
+      note(
+        null,
+        "wh-premature",
+        "warning",
+        "A distribution centre for one shop",
+        "The rent, the wages and the vans cost more than the deliveries they save until you are running about three locations.",
+        "Open more shops, or close the centre",
+        "logistics",
+        58
+      )
+    );
+  } else if (warehousesOf(state).length === 0 && businesses.filter((b) => b.status === "open" && Object.keys(b.stock).length > 0).length >= 3) {
+    out.push(
+      note(
+        null,
+        "wh-worth-it",
+        "opportunity",
+        "Your shops are each buying separately",
+        `${businesses.length} locations, every one paying its own call-out charge and its own minimum order. Buying in bulk into a warehouse and running your own van is usually cheaper at this size.`,
+        "Look at distribution",
+        "logistics",
+        50
       )
     );
   }
@@ -7098,8 +9261,8 @@ function openFoundBusinessDialog(ctx, building) {
   const renderList = () => {
     list.innerHTML = "";
     for (const type of options) {
-      const total = type.setupCost + type.equipmentCost;
-      const affordable = company.cash >= total;
+      const total2 = type.setupCost + type.equipmentCost;
+      const affordable = company.cash >= total2;
       list.appendChild(
         h(
           "div",
@@ -7126,7 +9289,7 @@ function openFoundBusinessDialog(ctx, building) {
             ),
             h("span", {
               class: `tag${affordable ? "" : " bad"}`,
-              text: money(total)
+              text: money(total2)
             })
           )
         )
@@ -7136,7 +9299,7 @@ function openFoundBusinessDialog(ctx, building) {
   const renderDetail = () => {
     detail.innerHTML = "";
     const def = district(building.district);
-    const total = selected.setupCost + selected.equipmentCost;
+    const total2 = selected.setupCost + selected.equipmentCost;
     const monthlyRent = building.status === "rented" ? building.rent : 0;
     const staffCost = selected.roles.length * 2300;
     const preference = def.preferences[selected.category] ?? 1;
@@ -7148,10 +9311,10 @@ function openFoundBusinessDialog(ctx, building) {
         h("h3", { class: "panel-title", text: "What this costs" }),
         stat("Fit-out", money(selected.setupCost)),
         stat("Equipment", money(selected.equipmentCost)),
-        stat("Total up front", money(total), company.cash >= total ? "good" : "bad"),
+        stat("Total up front", money(total2), company.cash >= total2 ? "good" : "bad"),
         stat("Rent from here on", monthlyRent > 0 ? `${money(monthlyRent)}/mo` : "Owned \u2014 no rent"),
         stat("Wages once staffed", `about ${money(staffCost)}/mo`),
-        stat("Cash after opening", money(company.cash - total), company.cash - total > 5e3 ? void 0 : "bad")
+        stat("Cash after opening", money(company.cash - total2), company.cash - total2 > 5e3 ? void 0 : "bad")
       )
     );
     detail.appendChild(
@@ -7322,8 +9485,8 @@ function renderBuildingPanel(ctx, host, building, map) {
   const def = district(building.district);
   const business = building.businessId ? state.businesses.find((b) => b.id === building.businessId) : void 0;
   const rivals = state.buildings.filter((b) => b.district === building.district && b.status === "competitor").length;
-  const total = state.buildings.filter((b) => b.district === building.district).length;
-  const competition = rivals / Math.max(1, total);
+  const total2 = state.buildings.filter((b) => b.district === building.district).length;
+  const competition = rivals / Math.max(1, total2);
   const competitionLabel = competition > 0.4 ? "High" : competition > 0.18 ? "Medium" : "Low";
   const isMine = building.occupantCompanyId === state.playerCompanyId;
   const suitable = building.suitableFor.map((category) => CATEGORY_NAMES[category]).join(", ");
@@ -7801,7 +9964,7 @@ function marketView(ctx) {
       });
       const scores = peers.map((peer) => ({ peer, score: attractiveness(state, peer).score }));
       const background = backgroundOutlets(building.district, type.category, 0) * share;
-      const total = sum(scores, (entry) => entry.score) + background;
+      const total2 = sum(scores, (entry) => entry.score) + background;
       let dailyPool = 0;
       const savedHour = state.hour;
       for (let hour = 0; hour < 24; hour += 1) {
@@ -7810,7 +9973,7 @@ function marketView(ctx) {
       }
       state.hour = savedHour;
       const ownScore = scores.find((entry) => entry.peer.id === business.id)?.score ?? 0;
-      const ownShare = total > 0 ? ownScore / total : 0;
+      const ownShare = total2 > 0 ? ownScore / total2 : 0;
       const leader = scores.reduce((best, entry) => entry.score > best.score ? entry : best, scores[0]);
       markets.appendChild(
         h(
@@ -7850,7 +10013,7 @@ function marketView(ctx) {
                 owner?.name ?? "\u2014",
                 pct(priceIndex(peer) * 100),
                 `${peer.reviewScore.toFixed(1)}\u2605`,
-                pct(score / Math.max(1e-4, total) * 100, 1)
+                pct(score / Math.max(1e-4, total2) * 100, 1)
               ];
             })
           ) : null
@@ -7917,6 +10080,42 @@ function marketView(ctx) {
       })
     )
   );
+  const catchments = section("Who lives in each district");
+  catchments.appendChild(
+    h("p", {
+      class: "tiny muted",
+      text: "Every district produces the same number of customers whoever they are \u2014 but not the same customers. Students fill a shop and barely fill a till; professionals do the opposite. This is the catchment, before your own shop is taken into account."
+    })
+  );
+  catchments.appendChild(
+    table(
+      ["District", "Mostly", ...SEGMENTS.map((seg) => seg.name), "Spend"],
+      DISTRICTS.map((def) => {
+        const mix = districtMix(def, "retail");
+        return [
+          def.name,
+          h("span", {}, leadingSegment(mix).name, hint(leadingSegment(mix).description)),
+          ...SEGMENTS.map(
+            (seg) => h("span", {
+              class: mix[seg.id] > 0.34 ? "good" : mix[seg.id] < 0.06 ? "muted" : "",
+              text: pct(mix[seg.id] * 100)
+            })
+          ),
+          h("span", {
+            class: basketFactor(mix) > 1.04 ? "good" : basketFactor(mix) < 0.96 ? "bad" : "",
+            text: pct(basketFactor(mix) * 100)
+          })
+        ];
+      })
+    )
+  );
+  catchments.appendChild(
+    h("p", {
+      class: "tiny muted",
+      text: "Spend is what an average basket here is worth against the city average. It is already in every revenue figure the game shows you."
+    })
+  );
+  el.appendChild(catchments);
   const targets = acquisitionTargets(state, 10);
   const buyPanel = section("Businesses you could buy");
   buyPanel.appendChild(
@@ -8300,6 +10499,7 @@ function detailPanel(ctx, business) {
       )
     );
   }
+  host.appendChild(crowdPanel(ctx, business));
   host.appendChild(reviewPanel(ctx, business));
   host.appendChild(competitivePanel(ctx, business));
   const staffRows = staff.map((employee) => [
@@ -8462,27 +10662,27 @@ function priceAnalysis(ctx, business) {
 }
 function revenuePerCustomer(business, factor) {
   const type = businessTypeOrThrow(business.typeId);
-  let total = type.serviceFee > 0 ? (business.prices.service ?? type.serviceFee) * factor : 0;
+  let total2 = type.serviceFee > 0 ? (business.prices.service ?? type.serviceFee) * factor : 0;
   const defs = type.productIds.map((id) => product(id)).filter((d) => Boolean(d));
   const appeal = sum(defs, (d) => d.appeal);
-  if (appeal <= 0) return total;
+  if (appeal <= 0) return total2;
   for (const def of defs) {
     const price = (business.prices[def.id] ?? def.marketPrice) * factor;
-    total += def.appeal / appeal * def.unitsPerBasket * price;
+    total2 += def.appeal / appeal * def.unitsPerBasket * price;
   }
-  return total;
+  return total2;
 }
 function costPerCustomer(business) {
   const type = businessTypeOrThrow(business.typeId);
   const defs = type.productIds.map((id) => product(id)).filter((d) => Boolean(d));
   const appeal = sum(defs, (d) => d.appeal);
   if (appeal <= 0) return 0;
-  let total = 0;
+  let total2 = 0;
   for (const def of defs) {
     const cost = business.costBasis[def.id] ?? def.wholesalePrice;
-    total += def.appeal / appeal * def.unitsPerBasket * cost;
+    total2 += def.appeal / appeal * def.unitsPerBasket * cost;
   }
-  return total;
+  return total2;
 }
 function competitivePanel(ctx, business) {
   const state = ctx.state;
@@ -8518,17 +10718,77 @@ function competitivePanel(ctx, business) {
         rivals.map((rival) => {
           const owner = state.companies.find((c) => c.id === rival.companyId);
           const score = attractiveness(state, rival).score;
-          const total = own.score + sum(rivals, (r) => attractiveness(state, r).score);
+          const total2 = own.score + sum(rivals, (r) => attractiveness(state, r).score);
           return [
             rival.name,
             owner?.name ?? "\u2014",
             pct(priceIndex(rival) * 100),
             `${rival.reviewScore.toFixed(1)}\u2605`,
-            pct(score / Math.max(1e-4, total) * 100)
+            pct(score / Math.max(1e-4, total2) * 100)
           ];
         })
       )
     );
+  }
+  return panel;
+}
+function crowdPanel(ctx, business) {
+  const state = ctx.state;
+  const building = state.buildings.find((b) => b.id === business.buildingId);
+  const type = businessTypeOrThrow(business.typeId);
+  const panel = section("Who comes in");
+  const served = normaliseMix(business.yesterdayMix);
+  const total2 = SEGMENTS.reduce((acc, s) => acc + served[s.id], 0);
+  const catchment = building ? districtMix(district(building.district), type.category) : null;
+  if (total2 <= 0) {
+    panel.appendChild(
+      empty(
+        catchment ? `Nobody yesterday. The district around you is mostly ${leadingSegment(catchment).name.toLowerCase()}.` : "Nobody yesterday."
+      )
+    );
+  }
+  for (const seg of SEGMENTS) {
+    const share = served[seg.id] ?? 0;
+    const local = catchment ? catchment[seg.id] : 0;
+    if (share < 0.01 && local < 0.04) continue;
+    panel.appendChild(
+      h(
+        "div",
+        { style: "margin:9px 0" },
+        h(
+          "div",
+          { style: "display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;gap:10px" },
+          h("span", {}, seg.name, hint(seg.description)),
+          h("span", {
+            class: share > local * 1.15 ? "good" : share < local * 0.85 ? "bad" : "muted",
+            text: `${pct(share * 100)} of your customers \xB7 ${pct(local * 100)} of the district`
+          })
+        ),
+        bar(share, share > local * 1.15 ? "good" : share < local * 0.85 ? "bad" : "")
+      )
+    );
+  }
+  if (total2 > 0) {
+    const lead = leadingSegment(served);
+    const spend = basketFactor(served);
+    panel.appendChild(
+      h("p", {
+        class: "tiny muted",
+        style: "margin-top:10px",
+        text: `Mostly ${lead.name.toLowerCase()}. ${lead.description} This crowd spends about ${pct(spend * 100)} of what an average Northgate customer does, which is already in your takings.`
+      })
+    );
+  }
+  if (catchment) {
+    const missing = SEGMENTS.filter((seg) => catchment[seg.id] > 0.12 && (served[seg.id] ?? 0) < catchment[seg.id] * 0.6);
+    if (missing.length > 0 && total2 > 0) {
+      panel.appendChild(
+        h("p", {
+          class: "tiny bad",
+          text: `You are under-trading with ${missing.map((m) => m.name.toLowerCase()).join(" and ")} compared with who lives here. Opening hours, price and the state of the place are what decide that.`
+        })
+      );
+    }
   }
   return panel;
 }
@@ -9117,6 +11377,326 @@ function orderPanel(ctx, business) {
   );
   renderLines();
   refreshSummary();
+  return panel;
+}
+
+// src/ui/views/logistics.ts
+function logisticsView(ctx) {
+  const el = h("div", { class: "view" });
+  const state = ctx.state;
+  const warehouses = warehousesOf(state);
+  const shops = playerBusinesses(state).filter((b) => b.status !== "closed");
+  el.appendChild(
+    h(
+      "div",
+      { class: "view-head" },
+      h("h1", { text: "Distribution" }),
+      h("p", {
+        text: warehouses.length > 0 ? `${warehouses.length} distribution centre${warehouses.length === 1 ? "" : "s"} supplying ${shops.length} location${shops.length === 1 ? "" : "s"}` : "Buy in bulk once, deliver to your own shops overnight"
+      })
+    )
+  );
+  if (warehouses.length === 0) el.appendChild(pitchPanel(ctx));
+  for (const warehouse of warehouses) el.appendChild(warehousePanel(ctx, warehouse));
+  el.appendChild(convertPanel(ctx));
+  return { el };
+}
+function pitchPanel(ctx) {
+  const state = ctx.state;
+  const shops = playerBusinesses(state).filter((b) => b.status === "open");
+  const spent = sum(
+    state.ledger.filter((entry) => entry.category === "logistics" && entry.day > state.day - 30),
+    (entry) => -entry.amount
+  );
+  return section(
+    "Why a distribution centre",
+    h("p", {
+      class: "tiny muted",
+      text: "Every supplier delivery carries a call-out charge and its own lead time, and each shop ordering separately misses the volume discount. A warehouse buys once, in bulk, and your own van restocks the shelves overnight."
+    }),
+    h(
+      "div",
+      { class: "grid cols-3", style: "margin:12px 0" },
+      stat("Your locations", String(shops.length), shops.length >= 3 ? "good" : void 0),
+      stat("Delivery charges, last 30 days", money(spent)),
+      stat("Fit-out cost", money(FIT_OUT_COST))
+    ),
+    h("p", {
+      class: "tiny muted",
+      text: shops.length >= 3 ? "At your size this usually pays for itself: bulk pricing, no minimum order per shop, and a supplier letting you down stops being a crisis." : "With one or two shops this is normally a waste of money \u2014 the rent and the wages cost more than the deliveries you would save. It becomes worth it at about three locations."
+    })
+  );
+}
+function warehousePanel(ctx, warehouse) {
+  const state = ctx.state;
+  const building = buildingById(state, warehouse.buildingId);
+  const capacity = capacityOf(state, warehouse);
+  const used = usedSpace(warehouse);
+  const staff = employeesOf(state, warehouse.id);
+  const drivers = staff.filter((e) => e.role === "driver").length;
+  const trips = tripsPerDay(state, warehouse);
+  const plan = planDispatch(state, warehouse);
+  const panel = section(warehouse.name);
+  panel.appendChild(
+    h("p", {
+      class: "tiny muted",
+      text: building ? `${building.address}, ${district(building.district).name} \xB7 ${money(building.rent)}/mo` : "Premises unknown"
+    })
+  );
+  panel.appendChild(
+    h(
+      "div",
+      { class: "grid cols-4", style: "margin:12px 0" },
+      stat("Space used", `${count(used)} / ${count(capacity)}`, used > capacity * 0.92 ? "bad" : void 0),
+      stat("Stock at cost", money(stockValue(warehouse))),
+      stat("Runs a day", `${trips}`, drivers === 0 ? "bad" : "good"),
+      stat("Staff", `${staff.length}`)
+    )
+  );
+  panel.appendChild(bar(capacity > 0 ? used / capacity : 0, used > capacity * 0.92 ? "bad" : "good"));
+  panel.appendChild(h("h4", { class: "panel-title", style: "margin-top:14px", text: "Tonight's run" }));
+  if (!warehouse.autoDispatch) {
+    panel.appendChild(empty("Automatic dispatch is off, so nothing leaves the racks tonight."));
+  } else if (plan.length === 0) {
+    panel.appendChild(
+      empty(
+        stockValue(warehouse) <= 0 ? "The racks are empty. Order stock in below and your shops can draw on it." : "Every shop is above its reorder point, so the vans stay in."
+      )
+    );
+  } else {
+    const byBusiness = /* @__PURE__ */ new Map();
+    for (const line of plan) byBusiness.set(line.businessId, (byBusiness.get(line.businessId) ?? 0) + line.units);
+    panel.appendChild(
+      table(
+        ["Shop", "Units going out", ""],
+        [...byBusiness.entries()].map(([businessId, units]) => {
+          const business = businessById(state, businessId);
+          return [
+            business?.name ?? "Unknown",
+            count(units),
+            button("Open", () => ctx.go("businesses", { business: businessId }), "btn small ghost")
+          ];
+        })
+      )
+    );
+    panel.appendChild(
+      h("p", {
+        class: "tiny muted",
+        text: `${byBusiness.size} run${byBusiness.size === 1 ? "" : "s"} at ${money(TRIP_COST)} each. ${drivers === 0 ? `Without a driver you can only manage ${BASE_TRIPS} runs a day; each driver adds ${TRIPS_PER_DRIVER}.` : `${drivers} driver${drivers === 1 ? "" : "s"} on the payroll.`}`
+      })
+    );
+  }
+  const stockRows = Object.entries(warehouse.stock).filter(([, units]) => units > 0.5).sort((a, b) => b[1] - a[1]).map(([productId, units]) => {
+    const def = product(productId);
+    return [
+      def?.name ?? productId,
+      count(units),
+      money((warehouse.costBasis[productId] ?? def?.wholesalePrice ?? 0) * units),
+      def && def.shelfLife > 0 ? h("span", { class: "tag warn", text: `${def.shelfLife}d shelf life` }) : "\u2014"
+    ];
+  });
+  panel.appendChild(h("h4", { class: "panel-title", style: "margin-top:14px", text: "On the racks" }));
+  panel.appendChild(
+    stockRows.length > 0 ? table(["Product", "Units", "At cost", ""], stockRows) : empty("Nothing on the racks yet.")
+  );
+  panel.appendChild(bulkOrder(ctx, warehouse));
+  panel.appendChild(staffPanel(ctx, warehouse));
+  const actions = h("div", { class: "btn-row", style: "margin-top:14px" });
+  actions.appendChild(
+    h(
+      "label",
+      { class: "switch" },
+      h("input", { type: "checkbox", checked: warehouse.autoDispatch, on: { change: () => {
+        warehouse.autoDispatch = !warehouse.autoDispatch;
+        ctx.refresh();
+      } } }),
+      h("span", { text: "Send the vans out automatically" })
+    )
+  );
+  actions.appendChild(
+    button(
+      "Close this centre",
+      async () => {
+        const ok = await confirmDialog(
+          `Close ${warehouse.name}?`,
+          "Staff are paid off and everything on the racks is cleared at half what it cost. The premises stay yours.",
+          "Close it"
+        );
+        if (!ok) return;
+        const result = closeWarehouse(state, warehouse.id);
+        toast(result.message, result.ok ? "good" : "bad");
+        ctx.refresh();
+      },
+      "btn danger"
+    )
+  );
+  panel.appendChild(actions);
+  return panel;
+}
+function bulkOrder(ctx, warehouse) {
+  const state = ctx.state;
+  const products = stockableProducts(state);
+  const host = h("div", { style: "margin-top:14px" }, h("h4", { class: "panel-title", text: "Order in bulk" }));
+  if (products.length === 0) {
+    host.appendChild(empty("None of your businesses sell stock, so there is nothing to hold here."));
+    return host;
+  }
+  let supplierId = SUPPLIERS[0].id;
+  const quantities = {};
+  const figures = h("div", { style: "margin-top:10px" });
+  const problemsHost = h("div", {});
+  const currentLines = () => Object.entries(quantities).filter(([, quantity]) => quantity > 0).map(([productId, quantity]) => ({ productId, quantity }));
+  const place = button(
+    "Place bulk order",
+    () => {
+      const result = placeBulkOrder(state, supplierId, warehouse.id, currentLines());
+      toast(result.message, result.ok ? "good" : "bad");
+      if (result.ok) ctx.refresh();
+    },
+    "btn primary"
+  );
+  const refresh = () => {
+    const quote = quoteBulk(state, supplierId, warehouse.id, currentLines());
+    figures.innerHTML = "";
+    figures.appendChild(
+      h(
+        "div",
+        {},
+        stat("Units", count(quote.units)),
+        stat("Goods", money(quote.goodsCost)),
+        stat("Delivery", money(quote.deliveryCost)),
+        stat("Total", money(quote.total)),
+        stat(
+          "Against shop-by-shop",
+          quote.units > 0 ? `saves ${money(Math.max(0, quote.retailEquivalent - quote.total))}` : "\u2014",
+          quote.retailEquivalent > quote.total ? "good" : "muted"
+        ),
+        stat("Space after delivery", `${count(Math.max(0, freeSpace(state, warehouse) - quote.volume))} free`)
+      )
+    );
+    problemsHost.innerHTML = "";
+    for (const problem of quote.problems) {
+      problemsHost.appendChild(h("p", { class: "tiny bad", text: problem }));
+    }
+    place.disabled = quote.problems.length > 0;
+  };
+  host.appendChild(
+    h(
+      "label",
+      { class: "field" },
+      h("span", { text: "Supplier" }),
+      select(
+        SUPPLIERS.map((def) => ({
+          value: def.id,
+          label: `${def.name} \u2014 ${pct(def.priceMultiplier * 100)} of list, ${def.leadTimeHours}h, min \u20AC${def.minimumOrderValue}`
+        })),
+        supplierId,
+        (value) => {
+          supplierId = value;
+          refresh();
+        }
+      )
+    )
+  );
+  const rows = products.map((productId) => {
+    const def = product(productId);
+    quantities[productId] = quantities[productId] ?? 0;
+    return [
+      def?.name ?? productId,
+      money(def?.wholesalePrice ?? 0),
+      count(warehouse.stock[productId] ?? 0),
+      numberInput(0, (value) => {
+        quantities[productId] = Math.max(0, Math.round(value));
+        refresh();
+      }, { step: "50", min: "0" })
+    ];
+  });
+  host.appendChild(table(["Product", "List price", "On the racks", "Order"], rows));
+  host.appendChild(figures);
+  host.appendChild(problemsHost);
+  host.appendChild(h("div", { class: "btn-row", style: "margin-top:10px" }, place));
+  refresh();
+  return host;
+}
+function staffPanel(ctx, warehouse) {
+  const state = ctx.state;
+  const staff = employeesOf(state, warehouse.id);
+  const host = h("div", { style: "margin-top:14px" }, h("h4", { class: "panel-title", text: "People" }));
+  host.appendChild(
+    staff.length > 0 ? table(
+      ["Name", "Role", "Skill", "Salary"],
+      staff.map((employee) => [
+        employee.name,
+        role(employee.role).name,
+        `${Math.round(employee.skill)}`,
+        `${money(employee.salary)}/mo`
+      ])
+    ) : empty("Nobody works here. Without a driver the centre manages only a couple of runs a day.")
+  );
+  const applicants = state.applicants.filter(
+    (a) => a.role === "warehouse" || a.role === "driver" || a.role === "manager"
+  );
+  host.appendChild(
+    applicants.length > 0 ? table(
+      ["Applicant", "Role", "Skill", "Asking", ""],
+      applicants.slice(0, 5).map((applicant) => [
+        applicant.name,
+        role(applicant.role).name,
+        `${Math.round(applicant.skill)}`,
+        `${money(applicant.salary)}/mo`,
+        button(
+          "Hire",
+          () => {
+            const result = hireToWarehouse(state, applicant.id, warehouse.id);
+            toast(result.message, result.ok ? "good" : "bad");
+            ctx.refresh();
+          },
+          "btn small primary"
+        )
+      ])
+    ) : empty("No warehouse staff or drivers are looking for work today.")
+  );
+  return host;
+}
+function convertPanel(ctx) {
+  const state = ctx.state;
+  const company = playerCompany(state);
+  const candidates = state.buildings.filter(
+    (b) => b.occupantCompanyId === company.id && !b.businessId && !state.warehouses.some((w) => w.buildingId === b.id)
+  );
+  const panel = section("Premises you could rack out");
+  if (candidates.length === 0) {
+    panel.appendChild(
+      empty("You hold no empty units. Take a lease on something with plenty of storage \u2014 the industrial and warehouse districts are cheapest per unit of space.")
+    );
+    panel.appendChild(
+      h("div", { class: "btn-row" }, button("Find premises", () => ctx.go("property"), "btn primary"))
+    );
+    return panel;
+  }
+  panel.appendChild(
+    table(
+      ["Address", "District", "Storage", "Rent", ""],
+      candidates.map((building) => {
+        const check = canConvert(state, building.id);
+        return [
+          building.address,
+          district(building.district).name,
+          count(building.storageCapacity),
+          `${money(building.rent)}/mo`,
+          check.ok ? button(
+            `Rack it out \u2014 ${money(FIT_OUT_COST)}`,
+            () => {
+              const result = openWarehouse(state, building.id, `${company.name} Distribution`);
+              toast(result.message, result.ok ? "good" : "bad");
+              ctx.refresh();
+            },
+            "btn small primary"
+          ) : h("span", { class: "tiny muted", text: check.message })
+        ];
+      })
+    )
+  );
   return panel;
 }
 
@@ -9754,6 +12334,7 @@ function reportsView(ctx) {
     headline.appendChild(explainChange(ctx, yesterday.day, previous.day));
   }
   el.appendChild(headline);
+  el.appendChild(accountsPanel(ctx));
   el.appendChild(
     h(
       "div",
@@ -9916,6 +12497,136 @@ function explainChange(ctx, day, previousDay) {
       text: `Total swing: ${moneySigned(sum(movers, (m) => m.change))}.`
     })
   );
+}
+function accountsPanel(ctx) {
+  const state = ctx.state;
+  const panel = section("Management accounts");
+  if (state.accounts.length === 0) {
+    panel.appendChild(
+      empty(
+        `The books are closed at the end of each month. The first set is due on day ${Math.ceil(state.day / 30) * 30}.`
+      )
+    );
+    return panel;
+  }
+  let index = state.accounts.length - 1;
+  const body = h("div", {});
+  const render = () => {
+    const account = state.accounts[index];
+    const before = state.accounts[index - 1];
+    body.innerHTML = "";
+    body.appendChild(
+      h("p", {
+        class: "tiny muted",
+        text: `Days ${account.fromDay}\u2013${account.toDay} \xB7 ${account.locations} location${account.locations === 1 ? "" : "s"} \xB7 ${account.headcount} on the payroll`
+      })
+    );
+    const pl = h("div", {});
+    const line = (label, value, tone) => stat(label, money(value), tone);
+    pl.appendChild(line("Turnover", account.revenue));
+    pl.appendChild(line("Cost of sales", -account.costOfSales));
+    pl.appendChild(
+      stat(
+        `Gross profit (${Math.round(grossMarginOf(account) * 100)}%)`,
+        money(account.grossProfit),
+        account.grossProfit >= 0 ? "good" : "bad"
+      )
+    );
+    pl.appendChild(line("Wages", -account.wages));
+    pl.appendChild(line("Rent", -account.rent));
+    pl.appendChild(line("Utilities", -account.utilities));
+    pl.appendChild(line("Marketing", -account.marketing));
+    pl.appendChild(line("Logistics", -account.logistics));
+    if (account.training > 0) pl.appendChild(line("Training and severance", -account.training));
+    if (account.interest > 0) pl.appendChild(line("Interest", -account.interest));
+    if (account.tax > 0) pl.appendChild(line("Corporation tax", -account.tax));
+    pl.appendChild(
+      stat("Net profit", moneySigned(account.netProfit), account.netProfit >= 0 ? "good" : "bad")
+    );
+    const balance = h("div", {});
+    balance.appendChild(stat("Cash", money(account.cash), account.cash < 0 ? "bad" : void 0));
+    balance.appendChild(stat("Stock", money(account.stock)));
+    balance.appendChild(stat("Property", money(account.property)));
+    balance.appendChild(stat("Goodwill", money(account.goodwill)));
+    balance.appendChild(stat("Debt", money(-account.debt), account.debt > 0 ? "bad" : "muted"));
+    balance.appendChild(stat("Net worth", money(account.netWorth), "good"));
+    balance.appendChild(stat("Customers served", count(account.customers)));
+    balance.appendChild(stat("Average basket", money(basketOf(account))));
+    balance.appendChild(
+      stat(
+        "Revenue per head",
+        account.headcount > 0 ? money(account.revenue / account.headcount) : "\u2014"
+      )
+    );
+    body.appendChild(
+      h(
+        "div",
+        { class: "grid cols-2", style: "margin-top:10px" },
+        h("div", {}, h("h4", { class: "panel-title", text: "Profit and loss" }), pl),
+        h("div", {}, h("h4", { class: "panel-title", text: "At the close" }), balance)
+      )
+    );
+    if (before) {
+      body.appendChild(h("h4", { class: "panel-title", style: "margin-top:14px", text: "Against last month" }));
+      body.appendChild(
+        table(
+          ["", "This month", "Last month", "Change"],
+          movements(account, before).slice(0, 6).map((row) => [
+            row.label,
+            money(row.now),
+            money(row.before),
+            h("span", {
+              class: row.change === 0 ? "muted" : row.change > 0 === row.higherIsBetter ? "good" : "bad",
+              text: moneySigned(row.change)
+            })
+          ])
+        )
+      );
+    }
+    if (account.byBusiness.length > 0) {
+      body.appendChild(h("h4", { class: "panel-title", style: "margin-top:14px", text: "By location" }));
+      body.appendChild(
+        table(
+          ["Business", "Turnover", "Costs", "Contribution"],
+          account.byBusiness.slice().sort((a, b) => b.profit - a.profit).map((row) => [
+            row.name,
+            money(row.revenue),
+            money(row.costs),
+            h("span", { class: row.profit >= 0 ? "good" : "bad", text: moneySigned(row.profit) })
+          ])
+        )
+      );
+      body.appendChild(
+        h("p", {
+          class: "tiny muted",
+          text: "Contribution is what each site earned after everything charged to it. Company-wide costs \u2014 an empty lease, a distribution centre, interest, tax \u2014 sit outside this table and are in the profit and loss above."
+        })
+      );
+    }
+  };
+  if (state.accounts.length > 1) {
+    panel.appendChild(
+      h(
+        "label",
+        { class: "field" },
+        h("span", { text: "Month" }),
+        select(
+          state.accounts.map((account, i) => ({
+            value: String(i),
+            label: `Days ${account.fromDay}\u2013${account.toDay}`
+          })),
+          String(index),
+          (value) => {
+            index = Number(value);
+            render();
+          }
+        )
+      )
+    );
+  }
+  panel.appendChild(body);
+  render();
+  return panel;
 }
 
 // src/ui/views/settings.ts
@@ -10105,6 +12816,7 @@ function boot(state) {
   });
   app.register({ route: "employees", label: "Employees", icon: "\u{1F465}", factory: employeesView });
   app.register({ route: "inventory", label: "Inventory", icon: "\u{1F4E6}", factory: inventoryView });
+  app.register({ route: "logistics", label: "Distribution", icon: "\u{1F69A}", factory: logisticsView });
   app.register({ route: "marketing", label: "Marketing", icon: "\u{1F4E3}", factory: marketingView });
   app.register({ route: "finance", label: "Finance", icon: "\u{1F4B6}", factory: financeView });
   app.register({ route: "property", label: "Real estate", icon: "\u{1F3E2}", factory: propertyView });
