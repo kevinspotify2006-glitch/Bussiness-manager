@@ -1,0 +1,34 @@
+BUSINESS MANAGER — speelbare versie
+
+Dubbelklik index.html. Het hele spel zit in dat ene bestand, dus het werkt
+rechtstreeks vanaf je schijf: geen server, geen internet.
+
+Opslaan gaat via de opslag van je browser, en die hangt aan de map waar
+index.html staat. Verplaats het bestand dus niet nadat je begonnen bent.
+
+NIEUW IN DEZE VERSIE: DE BUILDING DESIGNER
+
+Je vindt hem onder "Buildings" in het menu, of via de knop "Design this
+building" bij een vestiging, een pand of het hoofdkantoor.
+
+  Zelf neerzetten   Klik een object, klik op de plattegrond. Slepen om te
+                    verplaatsen, nog eens klikken op het gekozen object om
+                    het te draaien. Groen betekent dat het past, rood niet.
+  Muren             Muren lopen tussen de tegels. Wat ze omsluiten wordt een
+                    ruimte, en wat je erin zet bepaalt wat voor ruimte het is.
+                    Een vergadertafel maakt er een vergaderruimte van; haal
+                    hem weg en het is weer gewoon een ruimte.
+  Werkplekken       Dit is het belangrijkste. Een bureau is pas een werkplek
+                    als er een computer op staat, en je kunt niemand aannemen
+                    zonder werkplek. Wil je de zestiende man aannemen, dan
+                    bouw je eerst het zestiende bureau.
+  Gevolgen          Ruimte per persoon, een plek om even niet te werken en
+                    werkend sanitair bepalen hoe mensen zich voelen en hoeveel
+                    ze voor elkaar krijgen. Stellingkasten zijn opslag. Een
+                    trainingsruimte die je zelf bouwt doet hetzelfde als het
+                    trainingscentrum van het hoofdkantoor.
+  Verdiepingen      Panden met meer verdiepingen kun je er een openen.
+  Ongedaan maken    Undo en redo, voor alles wat je doet.
+
+Alles wordt opgeslagen: elk object, op de tegel en in de draairichting waar
+je het hebt neergezet.
