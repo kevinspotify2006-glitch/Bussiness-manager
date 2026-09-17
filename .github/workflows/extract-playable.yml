@@ -41,4 +41,4 @@ jobs:
           git commit -m "Clear repository"
           git push
 
-# Cleanup trigger
+# Extract ZIP trigger
