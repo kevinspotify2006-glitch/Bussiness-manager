@@ -13,24 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract or clear playable build
+      - name: Extract ZIP into repository root
         run: |
+          set -e
           ZIP=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
-          if [ -n "$ZIP" ]; then
-            mkdir -p extracted
-            unzip -o "$ZIP" -d extracted
-            INDEX=$(find extracted -type f -name 'index.html' | head -n 1)
-            CSS=$(find extracted -type f -name 'main.css' | head -n 1)
-            JS=$(find extracted -type f -name 'main.js' | head -n 1)
-            test -n "$INDEX" && test -n "$CSS" && test -n "$JS"
-            cp "$INDEX" ./index.html
-            cp "$CSS" ./main.css
-            cp "$JS" ./main.js
-            rm -rf extracted "$ZIP"
-          else
-            find . -maxdepth 1 -type f ! -name '.gitignore' -delete
-          fi
-      - name: Commit changes
+          test -n "$ZIP"
+          rm -rf extracted
+          mkdir -p extracted
+          unzip -o "$ZIP" -d extracted
+          ROOT=$(find extracted -type f -name 'index.html' -print -quit | xargs -r dirname)
+          test -n "$ROOT"
+          cp -a "$ROOT"/. ./
+          rm -rf extracted "$ZIP"
+      - name: Commit extracted files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -38,7 +33,7 @@ jobs:
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "Clear repository"
+          git commit -m "Extract playable build"
           git push
 
 # Extract ZIP trigger
