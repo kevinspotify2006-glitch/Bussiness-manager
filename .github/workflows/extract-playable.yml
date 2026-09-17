@@ -40,3 +40,5 @@ jobs:
           fi
           git commit -m "Clear repository"
           git push
+
+# Cleanup trigger
