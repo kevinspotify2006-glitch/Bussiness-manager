@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- The scale is locked deliberately. This is a full-screen app shell: the
+         map does its own pinch-zoom, every wide table scrolls inside its own
+         box, and letting the browser widen the layout viewport pushes dialogs
+         and toasts off the side of a phone screen.
+
+         viewport-fit=cover is what puts the page behind the rounded corners and
+         the notch, and it is only safe because the stylesheet then pays the
+         safe-area insets back on every edge it touches. One without the other
+         would hide the navigation under the system bar. -->
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta
+      name="description"
+      content="BUSINESS MANAGER — build a business empire in the city of Northgate."
+    />
+
+    <!-- Installed as an app: on Android through the manifest, on iOS through
+         the older meta tags, which Safari still reads and nothing else does. -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Business Manager" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="icon" href="./icons/icon-192.png" type="image/png" />
+
+    <title>Business Manager</title>
+  <link rel="stylesheet" href="./main.css"></head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.js"></script>
+    <script>
+      // The offline shell. Registered from here rather than from the bundle so
+      // that it is one relative path in one place, and so a browser without
+      // service workers — or a page opened straight off the filesystem, where
+      // registration is not allowed — simply carries on without it.
+      if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {
+            /* No offline shell. The game still runs; it just needs the network
+               to start. Nothing here is worth interrupting the player over. */
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
